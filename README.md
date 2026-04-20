@@ -527,3 +527,12 @@ SQL-запросы должны:
 - серверную пагинацию списка;
 - PostGIS и геоиндексы;
 - экспорт выбранных объектов.
+
+
+<div align="center">⁂</div>
+
+[^1]: https://qna.habr.com/q/1348044
+
+[^2]: https://oneuptime.com/blog/post/2026-02-02-fastapi-async-database/view
+
+[^3]: https://yandex.cloud/ru/docs/tutorials/ml-ai/node-from-docker-fast-api
