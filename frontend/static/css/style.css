@@ -1,0 +1,175 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+}
+
+.container {
+    display: grid;
+    grid-template-areas:
+        "header header"
+        "filters main"
+        "filters list"
+        "card card";
+    grid-template-columns: 250px 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+}
+
+.header {
+    grid-area: header;
+    background: #333;
+    color: #fff;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 24px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+}
+
+.search-box input {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    width: 250px;
+}
+
+.search-box button {
+    padding: 8px 16px;
+    background: #ff6b00;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.filters {
+    grid-area: filters;
+    background: #fff;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+.filters h3 {
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.filter-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.filters button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #333;
+    color: #fff;
+}
+
+.filters button#clearFilters {
+    background: #666;
+}
+
+.main {
+    grid-area: main;
+    position: relative;
+}
+
+.map {
+    width: 100%;
+    height: 500px;
+}
+
+.loading, .no-results {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 20px 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.objects-list {
+    grid-area: list;
+    background: #fff;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.objects-list h3 {
+    margin-bottom: 15px;
+}
+
+.objects-list ul {
+    list-style: none;
+}
+
+.objects-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.objects-list li:hover {
+    background: #f5f5f5;
+}
+
+.object-card {
+    grid-area: card;
+    background: #fff;
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    display: none;
+    position: relative;
+}
+
+.object-card button#closeCard {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.object-card h3 {
+    margin-bottom: 15px;
+}
+
+.object-card p {
+    margin-bottom: 10px;
+}
