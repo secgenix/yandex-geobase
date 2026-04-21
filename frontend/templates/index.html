@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Геобаза - Карта объектов</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Геобаза</h1>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Поиск объектов...">
+                <button id="searchBtn">Найти</button>
+            </div>
+        </header>
+        
+        <aside class="filters">
+            <h3>Фильтры</h3>
+            <div class="filter-group">
+                <label for="categoryFilter">Категория</label>
+                <select id="categoryFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="statusFilter">Статус</label>
+                <select id="statusFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="cityFilter">Город</label>
+                <select id="cityFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <button id="applyFilters">Применить</button>
+            <button id="clearFilters">Очистить</button>
+        </aside>
+        
+        <main class="main">
+            <div id="map" class="map" style="height: 500px;"></div>
+            <div id="loading" class="loading" style="display: none;">Загрузка...</div>
+            <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
+        </main>
+        
+        <aside class="objects-list">
+            <h3>Список объектов</h3>
+            <ul id="objectsList"></ul>
+        </aside>
+        
+        <aside class="object-card" id="objectCard" style="display: none;">
+            <button id="closeCard">&times;</button>
+            <h3 id="cardName"></h3>
+            <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
+            <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
+            <p><strong>Статус:</strong> <span id="cardStatus"></span></p>
+            <p><strong>Координаты:</strong> <span id="cardCoords"></span></p>
+            <p><strong>Описание:</strong> <span id="cardDescription"></span></p>
+        </aside>
+    </div>
+
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU"></script>
+    <script src="static/js/script.js"></script>
+</body>
+</html>
