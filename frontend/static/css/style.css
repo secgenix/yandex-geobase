@@ -60,7 +60,7 @@ body {
     grid-area: filters;
     background: #fff;
     padding: 20px;
-    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
 }
 
 .filters h3 {
@@ -109,7 +109,8 @@ body {
     height: 500px;
 }
 
-.loading, .no-results {
+.loading,
+.no-results {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -117,14 +118,14 @@ body {
     background: #fff;
     padding: 20px 40px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .objects-list {
     grid-area: list;
     background: #fff;
     padding: 20px;
-    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
     max-height: 300px;
     overflow-y: auto;
 }
