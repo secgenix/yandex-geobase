@@ -1,0 +1,77 @@
+@startuml Architecture Diagram
+
+!define COMPONENT_COLOR FFF8DC
+!define SERVICE_COLOR B0E0E6
+!define DATABASE_COLOR DDA0DD
+!define EXTERNAL_COLOR FFB6C1
+
+package "Frontend\n(HTML/CSS/JavaScript)" as frontend {
+  component "index.html" as html_file
+  component "style.css" as css_file
+  component "script.js" as js_script
+  component "Yandex Maps API v3\n(ymaps3)" as yandex_lib
+}
+
+package "Backend\n(FastAPI/Python)" as backend {
+  component "main.py" as main_app
+  component "routes.py\n(API endpoints)" as api_routes
+  component "geo_service.py\n(Бизнес-логика)" as geo_service
+  component "config.py\n(Конфигурация)" as config
+  component "pool.py\n(Connection Pool)" as pool
+  component "queries.py\n(SQL запросы)" as queries
+  component "schemas.py\n(Pydantic модели)" as schemas
+}
+
+package "External Services" as external {
+  component "Yandex Maps API\n(Рендеринг карты)" as yandex_api
+}
+
+package "Database\n(PostgreSQL)" as db {
+  component "geo_objects" as geo_table
+  component "categories_ref" as cat_ref
+  component "statuses_ref" as status_ref
+  component "cities_ref" as city_ref
+}
+
+html_file --> js_script : использует
+js_script --> yandex_lib : инициализирует
+js_script --> api_routes : GET запросы\n(/api/v1/objects, /api/v1/filters)
+
+api_routes --> geo_service : вызывает
+geo_service --> queries : формирует SQL
+queries --> pool : использует соединение
+pool --> geo_table : SELECT/INSERT/UPDATE
+pool --> cat_ref : SELECT DISTINCT
+pool --> status_ref : SELECT DISTINCT
+pool --> city_ref : SELECT DISTINCT
+
+main_app --> api_routes : регистрирует
+main_app --> config : загружает
+main_app --> pool : инициализирует при старте
+
+yandex_lib --> yandex_api : запрашивает плитки карты
+yandex_api --> yandex_lib : возвращает отрендеренную карту
+
+schemas --> api_routes : валидирует ответы
+pool --> schemas : маппирует данные БД
+
+note right of js_script
+  Асинхронные запросы
+  fetch(), axios или XMLHttpRequest
+end note
+
+note right of geo_service
+  Обработка фильтров
+  Построение WHERE условий
+end note
+
+note right of queries
+  Параметризованные запросы
+  Предотвращение SQL injection
+end note
+
+note right of yandex_lib
+  Требуется API ключ
+  Настраивается через {{ api_key }}
+end note
+
