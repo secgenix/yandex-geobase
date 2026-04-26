@@ -55,6 +55,7 @@ app.mount(
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================================
 
+
 def read_template(template_name: str) -> str:
     """Прочитать HTML шаблон"""
     template_path = BASE_DIR / "frontend" / "templates" / f"{template_name}.html"
@@ -67,6 +68,7 @@ def read_template(template_name: str) -> str:
 # ============================================================================
 # FRONTEND ROUTES
 # ============================================================================
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -113,51 +115,29 @@ async def register_redirect(request: Request):
 
 
 @app.get("/profile.html", response_class=HTMLResponse)
-async def profile_page(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Страница профиля (требуется авторизация)"""
+async def profile_page(request: Request):
+    """Страница профиля (проверка авторизации на клиенте)"""
     content = read_template("profile")
     return HTMLResponse(content)
 
 
 @app.get("/profile", response_class=HTMLResponse)
-async def profile_redirect(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
+async def profile_redirect(request: Request):
     """Редирект на profile.html"""
     content = read_template("profile")
     return HTMLResponse(content)
 
 
 @app.get("/admin.html", response_class=HTMLResponse)
-async def admin_page(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Админ панель (требуется роль admin)"""
-    if not current_user.has_role("admin"):
-        return HTMLResponse(
-            content="<h1>Доступ запрещен</h1><p>У вас нет прав администратора</p>",
-            status_code=403
-        )
+async def admin_page(request: Request):
+    """Админ панель (проверка авторизации на клиенте)"""
     content = read_template("admin")
     return HTMLResponse(content)
 
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_redirect(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
+async def admin_redirect(request: Request):
     """Редирект на admin.html"""
-    if not current_user.has_role("admin"):
-        return HTMLResponse(
-            content="<h1>Доступ запрещен</h1><p>У вас нет прав администратора</p>",
-            status_code=403
-        )
     content = read_template("admin")
     return HTMLResponse(content)
 
@@ -166,30 +146,24 @@ async def admin_redirect(
 # API ROUTES
 # ============================================================================
 
+
 @app.get("/api/v1/health")
 async def health():
     """Проверка здоровья сервиса"""
-    return {
-        "status": "ok",
-        "version": "2.0.0",
-        "message": "Сервис работает корректно"
-    }
+    return {"status": "ok", "version": "2.0.0", "message": "Сервис работает корректно"}
 
 
 # Тестовый endpoint для проверки авторизации
 @app.get("/api/v1/test-auth")
-async def test_auth(current_user = None):
+async def test_auth(current_user=None):
     from app.core.dependencies import get_current_user
     from sqlalchemy.orm import Session
     from fastapi import Depends
     from app.db.pool import get_db
-    
+
     # Этот endpoint требует авторизации
     # Используйте: curl -H "Authorization: Bearer <token>" http://localhost:8000/api/v1/test-auth
-    return {
-        "message": "Вы авторизованы",
-        "user": current_user
-    }
+    return {"message": "Вы авторизованы", "user": current_user}
 
 
 # Старые endpoints (совместимость)
