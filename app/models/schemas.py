@@ -36,7 +36,7 @@ class UserRegisterRequest(BaseModel):
 
 class UserLoginRequest(BaseModel):
     """Запрос для входа пользователя"""
-    email: EmailStr = Field(..., description="Email или username")
+    email: str = Field(..., description="Email или username")
     password: str = Field(..., description="Пароль")
 
 
