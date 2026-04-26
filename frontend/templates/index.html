@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yandex GeoBase</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <style>
+        .header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header-nav a, .header-nav button {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .header-nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .header-nav button {
+            background: #ff6b00;
+        }
+        .header-nav button:hover {
+            background: #e55a00;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-title">
+                <h1>Yandex GeoBase</h1>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Поиск объектов...">
+                    <button id="searchBtn">Найти</button>
+                </div>
+            </div>
+            <div class="header-nav" id="headerNav">
+                <a href="login.html">Вход</a>
+                <a href="register.html">Регистрация</a>
+            </div>
+        </header>
+
+        <aside class="filters">
+            <h3>Фильтры</h3>
+            <div class="filter-group">
+                <label for="categoryFilter">Категория</label>
+                <select id="categoryFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="statusFilter">Статус</label>
+                <select id="statusFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="cityFilter">Город</label>
+                <select id="cityFilter">
+                    <option value="">Все</option>
+                </select>
+            </div>
+            <button id="applyFilters">Применить</button>
+            <button id="clearFilters">Очистить</button>
+            <aside class="objects-list">
+                <h3>Список объектов</h3>
+                <ul id="objectsList"></ul>
+            </aside>
+        </aside>
+
+        <main class="main">
+            <div id="map" class="map" style="height: 100%;"></div>
+            <div id="loading" class="loading" style="display: none;">Загрузка...</div>
+            <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
+        </main>
+
+
+
+        <aside class="object-card" id="objectCard" style="display: none;">
+            <button id="closeCard">&times;</button>
+            <h3 id="cardName"></h3>
+            <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
+            <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
+            <p><strong>Статус:</strong> <span id="cardStatus"></span></p>
+            <p><strong>Координаты:</strong> <span id="cardCoords"></span></p>
+            <p><strong>Описание:</strong> <span id="cardDescription"></span></p>
+        </aside>
+    </div>
+
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU"></script>
+    <script src="../static/js/script.js"></script>
+</body>
+
+</html>
