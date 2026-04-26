@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Yandex GeoBase</title>
+    <link rel="stylesheet" href="../static/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <h1>Yandex GeoBase</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="index.html" class="nav-link">Карта</a>
+                <a href="profile.html" class="nav-link active">Профиль</a>
+                <div class="user-menu">
+                    <span id="username" class="user-name">Загрузка...</span>
+                    <button id="logoutBtn" class="btn btn-danger btn-sm">Выход</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-menu">
+                    <a href="#profile-info" class="menu-item active" data-section="profile-info">
+                        <span>👤</span> Информация профиля
+                    </a>
+                    <a href="#change-password" class="menu-item" data-section="change-password">
+                        <span>🔐</span> Смена пароля
+                    </a>
+                    <a href="#sessions" class="menu-item" data-section="sessions">
+                        <span>📱</span> Активные сессии
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Profile Information Section -->
+                <section id="profile-info" class="content-section active">
+                    <div class="section-header">
+                        <h2>Информация профиля</h2>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Имя пользователя:</label>
+                                    <input type="text" id="username-field" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email:</label>
+                                    <input type="email" id="email-field" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Имя:</label>
+                                    <input type="text" id="firstName-field" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Фамилия:</label>
+                                    <input type="text" id="lastName-field" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Статус:</label>
+                                    <input type="text" id="status-field" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Подтверждение:</label>
+                                    <input type="text" id="verified-field" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Роли:</label>
+                                    <div id="roles-field" class="roles-badge"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Разрешения:</label>
+                                    <div id="permissions-field" class="permissions-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Дата регистрации:</label>
+                                    <input type="text" id="created-at-field" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Последний вход:</label>
+                                    <input type="text" id="last-login-field" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button id="editProfileBtn" class="btn btn-primary">Редактировать</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Change Password Section -->
+                <section id="change-password" class="content-section">
+                    <div class="section-header">
+                        <h2>Смена пароля</h2>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="changePasswordForm">
+                                <div class="form-group">
+                                    <label for="oldPassword">Текущий пароль:</label>
+                                    <input 
+                                        type="password" 
+                                        id="oldPassword" 
+                                        name="oldPassword"
+                                        required
+                                        placeholder="Введите текущий пароль"
+                                    >
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="newPassword">Новый пароль:</label>
+                                    <input 
+                                        type="password" 
+                                        id="newPassword" 
+                                        name="newPassword"
+                                        required
+                                        placeholder="Введите новый пароль"
+                                        minlength="8"
+                                    >
+                                    <small>Пароль должен содержать заглавные буквы, строчные буквы и цифры</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="confirmPassword">Подтверждение пароля:</label>
+                                    <input 
+                                        type="password" 
+                                        id="confirmPassword" 
+                                        name="confirmPassword"
+                                        required
+                                        placeholder="Повторите новый пароль"
+                                        minlength="8"
+                                    >
+                                </div>
+
+                                <div id="error" class="alert alert-error" style="display: none;"></div>
+                                <div id="success" class="alert alert-success" style="display: none;"></div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Изменить пароль</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Active Sessions Section -->
+                <section id="sessions" class="content-section">
+                    <div class="section-header">
+                        <h2>Активные сессии</h2>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <p>У вас есть активная сессия в этом браузере.</p>
+                            <button id="logoutAllBtn" class="btn btn-danger">Выход из всех сессий</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div id="loading" class="alert alert-info alert-fixed" style="display: none;">
+        <span class="spinner"></span> Загрузка...
+    </div>
+
+    <script src="../static/js/profile.js"></script>
+</body>
+</html>

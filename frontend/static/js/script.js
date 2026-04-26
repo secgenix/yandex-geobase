@@ -1,3 +1,52 @@
+// Authentication
+const API_BASE_URL = '/api/v1';
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateAuthHeader();
+});
+
+function updateAuthHeader() {
+    const token = localStorage.getItem('access_token');
+    const headerNav = document.getElementById('headerNav');
+    
+    if (token && headerNav) {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isAdmin = user.roles && user.roles.includes('admin');
+            
+            headerNav.innerHTML = `
+                <span style="color: white; font-size: 14px;">👤 ${user.username || 'Пользователь'}</span>
+                ${isAdmin ? '<a href="admin.html">🔐 Админ</a>' : ''}
+                <a href="profile.html">Профиль</a>
+                <button onclick="logout()" style="background: #e74c3c;">Выход</button>
+            `;
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+            headerNav.innerHTML = `
+                <a href="profile.html">Профиль</a>
+                <button onclick="logout()" style="background: #e74c3c;">Выход</button>
+            `;
+        }
+    }
+}
+
+function logout() {
+    if (confirm('Вы уверены, что хотите выйти?')) {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(err => console.error('Logout error:', err));
+        }
+        
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
+        localStorage.removeItem('user');
+        window.location.href = 'login.html';
+    }
+}
+
 const DEFAULT_CENTER = [55.7558, 37.6173];
 const DEFAULT_ZOOM = 10;
 

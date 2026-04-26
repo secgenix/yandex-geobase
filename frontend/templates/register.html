@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - Yandex GeoBase</title>
+    <link rel="stylesheet" href="../static/css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card auth-card-large">
+            <div class="auth-header">
+                <h1>Yandex GeoBase</h1>
+                <p>Создание аккаунта</p>
+            </div>
+
+            <form id="registerForm" class="auth-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="username">Имя пользователя:</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            required
+                            placeholder="Выберите уникальное имя"
+                            minlength="3"
+                            maxlength="100"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            required
+                            placeholder="Введите email"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Имя:</label>
+                        <input 
+                            type="text" 
+                            id="firstName" 
+                            name="firstName" 
+                            placeholder="Ваше имя"
+                            maxlength="100"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Фамилия:</label>
+                        <input 
+                            type="text" 
+                            id="lastName" 
+                            name="lastName" 
+                            placeholder="Ваша фамилия"
+                            maxlength="100"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Пароль:</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required
+                            placeholder="Минимум 8 символов"
+                            minlength="8"
+                        >
+                        <small>Пароль должен содержать заглавные буквы, строчные буквы и цифры</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Подтверждение пароля:</label>
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirmPassword" 
+                            required
+                            placeholder="Повторите пароль"
+                            minlength="8"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="agree" name="agree" required>
+                    <label for="agree">Я согласен с условиями использования</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Зарегистрироваться</button>
+
+                <div id="error" class="alert alert-error" style="display: none;"></div>
+                <div id="success" class="alert alert-success" style="display: none;"></div>
+                <div id="loading" class="alert alert-info" style="display: none;">
+                    <span class="spinner"></span> Загрузка...
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <p>Уже есть аккаунт? <a href="login.html">Войти</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/register.js"></script>
+</body>
+</html>
