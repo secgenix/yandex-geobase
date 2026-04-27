@@ -103,12 +103,12 @@ async def list_map_markers(
     db: Session = Depends(get_db)
 ):
     # Маркеры — это GeoObject с минимальным наполнением.
-    # Сигнализируем маркер через name='Метка' и пустые справочники.
+    # Сигнализируем маркер через name='Метка' и максимально "пустую" карточку.
     query = db.query(GeoObject).filter(
         GeoObject.name == "Метка",
         GeoObject.category_id.is_(None),
-        GeoObject.status_id.is_(None),
-        GeoObject.city_id.is_(None),
+        GeoObject.address.is_(None),
+        GeoObject.description.is_(None),
     )
     total = query.count()
     items = query.order_by(GeoObject.id.desc()).offset(offset).limit(limit).all()

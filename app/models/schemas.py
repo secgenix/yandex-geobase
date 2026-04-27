@@ -263,47 +263,23 @@ class CategoryCreateRequest(BaseModel):
 
 
 class StatusResponse(BaseModel):
-    """Информация о статусе"""
-
-    id: int
-    name: str
-    description: Optional[str] = None
-    color: Optional[str] = None
-
-    class Config:
-        from_attributes = True
+    """Информация о статусе (deprecated)"""
+    pass
 
 
 class StatusCreateRequest(BaseModel):
-    """Запрос для создания статуса"""
-
-    name: str = Field(..., min_length=1, max_length=50)
-    description: Optional[str] = None
-    color: Optional[str] = None
+    """Запрос для создания статуса (deprecated)"""
+    pass
 
 
 class CityResponse(BaseModel):
-    """Информация о городе"""
-
-    id: int
-    name: str
-    region: Optional[str] = None
-    country: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-
-    class Config:
-        from_attributes = True
+    """Информация о городе (deprecated)"""
+    pass
 
 
 class CityCreateRequest(BaseModel):
-    """Запрос для создания города"""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    region: Optional[str] = None
-    country: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    """Запрос для создания города (deprecated)"""
+    pass
 
 
 # ============================================================================
@@ -321,8 +297,6 @@ class GeoObjectResponse(BaseModel):
     latitude: float
     longitude: float
     category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
     is_verified: bool = False
     created_at: datetime
     labels: List[str] = Field(default_factory=list)
@@ -340,8 +314,6 @@ class GeoObjectCreateRequest(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
     label_ids: List[int] = Field(default_factory=list)
 
 
@@ -354,8 +326,6 @@ class GeoObjectUpdateRequest(BaseModel):
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
     label_ids: Optional[List[int]] = None
 
 
@@ -364,8 +334,6 @@ class GeoObjectFilterRequest(BaseModel):
 
     search: Optional[str] = None
     category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
     label_ids: Optional[List[int]] = None
     bbox: Optional[str] = None  # minLon,minLat,maxLon,maxLat
     is_verified: Optional[bool] = None

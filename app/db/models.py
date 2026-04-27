@@ -223,51 +223,6 @@ class CategoryReference(Base):
     def __repr__(self):
         return f'<Category {self.name}>'
 
-
-class StatusReference(Base):
-    """Модель справочника статусов"""
-    __tablename__ = 'statuses_reference'
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    color = Column(String(7), nullable=True)
-    created_by = Column(Integer, ForeignKey('users.id'))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Отношения
-    geo_objects = relationship('GeoObject', back_populates='status')
-
-    def __repr__(self):
-        return f'<Status {self.name}>'
-
-
-class CityReference(Base):
-    """Модель справочника городов"""
-    __tablename__ = 'cities_reference'
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False, index=True)
-    region = Column(String(100), nullable=True)
-    country = Column(String(100), nullable=True)
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
-    created_by = Column(Integer, ForeignKey('users.id'))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Отношения
-    geo_objects = relationship('GeoObject', back_populates='city')
-
-    __table_args__ = (
-        Index('idx_cities_coords', 'latitude', 'longitude'),
-    )
-
-    def __repr__(self):
-        return f'<City {self.name}>'
-
-
 class Label(Base):
     """Модель метки для классификации объектов"""
     __tablename__ = 'labels'
@@ -302,8 +257,6 @@ class GeoObject(Base):
     address = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     category_id = Column(Integer, ForeignKey('categories_reference.id'))
-    status_id = Column(Integer, ForeignKey('statuses_reference.id'))
-    city_id = Column(Integer, ForeignKey('cities_reference.id'))
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     created_by = Column(Integer, ForeignKey('users.id'), nullable=False)
@@ -315,16 +268,12 @@ class GeoObject(Base):
 
     # Отношения
     category = relationship('CategoryReference', back_populates='geo_objects')
-    status = relationship('StatusReference', back_populates='geo_objects')
-    city = relationship('CityReference', back_populates='geo_objects')
     creator = relationship('User', foreign_keys=[created_by], back_populates='geo_objects_created')
     updater = relationship('User', foreign_keys=[updated_by], back_populates='geo_objects_updated')
     labels = relationship('Label', secondary=object_labels)
     comments = relationship('ObjectComment', back_populates='geo_object', cascade='all, delete-orphan')
 
     __table_args__ = (
-        Index('idx_geo_objects_category_status', 'category_id', 'status_id'),
-        Index('idx_geo_objects_city_category', 'city_id', 'category_id'),
         Index('idx_geo_objects_coords_brin', 'latitude', 'longitude'),
     )
 

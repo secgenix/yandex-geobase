@@ -207,8 +207,8 @@ async def get_object(obj_id: int):
 async def get_filters():
     return {
         "categories": ["office", "store"],
-        "statuses": ["active", "inactive"],
-        "cities": ["Москва", "Новосибирск"],
+        "statuses": [],
+        "cities": [],
     }
 
 
