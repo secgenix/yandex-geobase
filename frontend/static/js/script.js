@@ -1,6 +1,6 @@
 // Authentication
 const API_BASE_URL = '/api/v1';
-
+document.oncontextmenu = function () { return false; };
 document.addEventListener('DOMContentLoaded', () => {
     updateAuthHeader();
 });
@@ -8,12 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateAuthHeader() {
     const token = localStorage.getItem('access_token');
     const headerNav = document.getElementById('headerNav');
-    
+
     if (token && headerNav) {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const isAdmin = user.roles && user.roles.includes('admin');
-            
+
             headerNav.innerHTML = `
                 <span style="color: white; font-size: 14px;">👤 ${user.username || 'Пользователь'}</span>
                 ${isAdmin ? '<a href="admin.html">🔐 Админ</a>' : ''}
@@ -39,7 +39,7 @@ function logout() {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).catch(err => console.error('Logout error:', err));
         }
-        
+
         localStorage.removeItem('access_token');
         localStorage.removeItem('token_type');
         localStorage.removeItem('user');
@@ -55,13 +55,13 @@ let markers = [];
 let objectsData = [];
 
 function initMap() {
-    ymaps.ready(function() {
+    ymaps.ready(function () {
         map = new ymaps.Map('map', {
             center: DEFAULT_CENTER,
             zoom: DEFAULT_ZOOM,
             controls: ['zoomControl', 'typeSelector']
         });
-        
+
         loadObjects();
         loadFilters();
     });
@@ -70,35 +70,35 @@ function initMap() {
 function loadObjects(filters) {
     filters = filters || {};
     showLoading(true);
-    
+
     var params = new URLSearchParams(filters).toString();
-    
+
     fetch('/api/v1/objects?' + params)
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
             objectsData = data.items || [];
             renderMarkers(objectsData);
             renderObjectsList(objectsData);
-            
+
             if (objectsData.length === 0) {
                 document.getElementById('noResults').style.display = 'block';
             } else {
                 document.getElementById('noResults').style.display = 'none';
             }
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error('Ошибка загрузки объектов:', error);
         })
-        .finally(function() {
+        .finally(function () {
             showLoading(false);
         });
 }
 
 function renderMarkers(objects) {
-    markers.forEach(function(m) { map.geoObjects.remove(m); });
+    markers.forEach(function (m) { map.geoObjects.remove(m); });
     markers = [];
-    
-    objects.forEach(function(obj) {
+
+    objects.forEach(function (obj) {
         var placemark = new ymaps.Placemark(
             [obj.latitude, obj.longitude],
             {
@@ -110,11 +110,11 @@ function renderMarkers(objects) {
                 iconColor: '#ff6b00'
             }
         );
-        
-        placemark.events.add('click', function() {
+
+        placemark.events.add('click', function () {
             showObjectCard(obj);
         });
-        
+
         map.geoObjects.add(placemark);
         markers.push(placemark);
     });
@@ -123,30 +123,30 @@ function renderMarkers(objects) {
 function renderObjectsList(objects) {
     var list = document.getElementById('objectsList');
     list.innerHTML = '';
-    
-    objects.forEach(function(obj) {
+
+    objects.forEach(function (obj) {
         var li = document.createElement('li');
         li.textContent = obj.name;
         li.dataset.id = obj.id;
-        
-        li.addEventListener('click', function() {
+
+        li.addEventListener('click', function () {
             showObjectCard(obj);
             map.setCenter([obj.latitude, obj.longitude], 15);
         });
-        
+
         list.appendChild(li);
     });
 }
 
 function loadFilters() {
     fetch('/api/v1/filters')
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
             populateSelect('categoryFilter', data.categories);
             populateSelect('statusFilter', data.statuses);
             populateSelect('cityFilter', data.cities);
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error('Ошибка загрузки фильтров:', error);
         });
 }
@@ -154,8 +154,8 @@ function loadFilters() {
 function populateSelect(id, values) {
     var select = document.getElementById(id);
     select.innerHTML = '<option value="">Все</option>';
-    
-    values.forEach(function(val) {
+
+    values.forEach(function (val) {
         var option = document.createElement('option');
         option.value = val;
         option.textContent = val;
@@ -170,25 +170,25 @@ function showObjectCard(obj) {
     document.getElementById('cardStatus').textContent = obj.status || '-';
     document.getElementById('cardCoords').textContent = obj.latitude + ', ' + obj.longitude;
     document.getElementById('cardDescription').textContent = obj.description || '-';
-    
+
     document.getElementById('objectCard').style.display = 'block';
 }
 
 function applyFilters() {
     var filters = {};
-    
+
     var search = document.getElementById('searchInput').value;
     if (search) filters.search = search;
-    
+
     var category = document.getElementById('categoryFilter').value;
     if (category) filters.category = category;
-    
+
     var status = document.getElementById('statusFilter').value;
     if (status) filters.status = status;
-    
+
     var city = document.getElementById('cityFilter').value;
     if (city) filters.city = city;
-    
+
     loadObjects(filters);
 }
 
@@ -207,8 +207,43 @@ function showLoading(show) {
 document.getElementById('searchBtn').addEventListener('click', applyFilters);
 document.getElementById('applyFilters').addEventListener('click', applyFilters);
 document.getElementById('clearFilters').addEventListener('click', clearFilters);
-document.getElementById('closeCard').addEventListener('click', function() {
+document.getElementById('closeCard').addEventListener('click', function () {
     document.getElementById('objectCard').style.display = 'none';
 });
 
 document.addEventListener('DOMContentLoaded', initMap);
+
+$(document).ready(function () {
+
+    // отслеживаем нажатие мыши на странице
+    $(document).mousedown(function (event) {
+        // если нажата правая кнопка мыши (which === 3)
+        if (event.which === 3) {
+            // удаляем предыдущее меню
+            $('.context-menu').remove();
+
+            // создаём новый блок, в котором будет наше меню
+            $('<div/>', {
+                class: 'context-menu'
+            })
+                .css({
+                    left: event.pageX + 'px',
+                    top: event.pageY + 'px'
+                })
+                .appendTo('body')
+                .append(
+                    $('<ul/>')
+                        .append('<li><a href="#">Привет!</a></li>')
+                        .append('<li><a href="#">Это журнал «Код»!</a></li>')
+                        .append('<li><a href="#">А это — новое контекстное меню</a></li>')
+                );
+        }
+    });
+
+    // закрываем меню при клике вне него
+    $(document).click(function (event) {
+        if (event.which === 1 && !$(event.target).closest('.context-menu').length) {
+            $('.context-menu').remove();
+        }
+    });
+});
