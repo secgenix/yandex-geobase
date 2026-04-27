@@ -56,6 +56,8 @@ let mapContextMenuEl = null;
 let lastContextCoords = null;
 let mapMarkerCollection = null;
 let mapMarkerPlacemarks = [];
+let mapMarkersData = [];
+let filterOptions = { categories: [], organizations: [] };
 
 function initMap() {
     ymaps.ready(function () {
@@ -108,7 +110,7 @@ function setupMapContextMenu() {
             var action = target.getAttribute('data-action');
 
             if (action === 'add-marker') {
-                if (lastContextCoords) createMapMarker(lastContextCoords);
+                if (lastContextCoords) openMarkerModal(lastContextCoords);
             }
 
             hideMapContextMenu();
@@ -167,11 +169,16 @@ function renderMapMarker(marker) {
     if (!mapMarkerCollection || !marker) return;
 
     var coords = [marker.latitude, marker.longitude];
+    var title = marker.name || 'Метка';
+    var details = [];
+    if (marker.organization) details.push('Организация: ' + escapeHtml(marker.organization));
+    if (marker.category) details.push('Категория: ' + escapeHtml(marker.category));
+    if (marker.description) details.push(escapeHtml(marker.description));
     var placemark = new ymaps.Placemark(
         coords,
         {
             id: marker.id,
-            balloonContentBody: '<b>Метка</b><br>' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6)
+            balloonContentBody: '<b>' + escapeHtml(title) + '</b><br>' + details.join('<br>') + '<br>' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6)
         },
         {
             preset: 'islands#redIcon'
@@ -182,12 +189,53 @@ function renderMapMarker(marker) {
     mapMarkerPlacemarks.push(placemark);
 }
 
+function clearMapMarkers() {
+    if (mapMarkerCollection) mapMarkerCollection.removeAll();
+    mapMarkerPlacemarks = [];
+}
+
+function markerMatchesFilters(marker, filters) {
+    if (!marker) return false;
+
+    if (filters.category_id && String(marker.category_id || '') !== String(filters.category_id)) {
+        return false;
+    }
+
+    if (filters.organization_id && String(marker.organization_id || '') !== String(filters.organization_id)) {
+        return false;
+    }
+
+    if (filters.search) {
+        var search = String(filters.search).toLowerCase();
+        var haystack = [marker.name, marker.description, marker.category, marker.organization]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+        if (!haystack.includes(search)) return false;
+    }
+
+    return true;
+}
+
+function renderFilteredMapMarkers() {
+    clearMapMarkers();
+
+    var filters = getCurrentFilters();
+    var visibleObjectIds = new Set(objectsData.map(function (obj) { return Number(obj.id); }));
+    var visibleMarkers = mapMarkersData.filter(function (marker) {
+        return visibleObjectIds.has(Number(marker.id)) && markerMatchesFilters(marker, filters);
+    });
+
+    visibleMarkers.forEach(renderMapMarker);
+}
+
 function loadMapMarkers() {
     fetch('/api/v1/map-markers')
         .then(function (r) { return r.json(); })
         .then(function (data) {
             var items = (data && data.items) ? data.items : [];
-            items.forEach(renderMapMarker);
+            mapMarkersData = items;
+            renderFilteredMapMarkers();
         })
         .catch(function (e) {
             console.error('Ошибка загрузки меток:', e);
@@ -205,7 +253,7 @@ function createMapMarker(coords) {
             { 'Content-Type': 'application/json' },
             token ? { 'Authorization': 'Bearer ' + token } : {}
         ),
-        body: JSON.stringify({ latitude: coords[0], longitude: coords[1] })
+        body: JSON.stringify(coords)
     })
         .then(function (r) {
             if (!r.ok) {
@@ -217,13 +265,55 @@ function createMapMarker(coords) {
             return r.json();
         })
         .then(function (marker) {
-            renderMapMarker(marker);
+            mapMarkersData = [marker].concat(mapMarkersData.filter(function (item) {
+                return Number(item.id) !== Number(marker.id);
+            }));
+            loadObjects(getCurrentFilters());
         })
         .catch(function (e) {
             console.error('Ошибка сохранения метки:', e);
             // Фолбэк: показать локально, даже если БД недоступна
-            renderMapMarker({ id: null, latitude: coords[0], longitude: coords[1] });
+            alert('Не удалось сохранить метку: ' + e.message);
         });
+}
+
+function openMarkerModal(coords) {
+    var modal = document.getElementById('markerModal');
+    var form = document.getElementById('markerForm');
+    if (!modal || !form || !coords) return;
+
+    form.reset();
+    form.dataset.latitude = coords[0];
+    form.dataset.longitude = coords[1];
+    modal.style.display = 'flex';
+    document.getElementById('markerName').focus();
+}
+
+function closeMarkerModal() {
+    var modal = document.getElementById('markerModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function submitMarkerForm(event) {
+    event.preventDefault();
+
+    var form = event.currentTarget;
+    var payload = {
+        latitude: Number(form.dataset.latitude),
+        longitude: Number(form.dataset.longitude),
+        name: document.getElementById('markerName').value.trim(),
+        organization_id: document.getElementById('markerOrganization').value || null,
+        category_id: document.getElementById('markerCategory').value || null,
+        description: document.getElementById('markerDescription').value.trim() || null
+    };
+
+    if (!payload.name) {
+        alert('Введите название метки');
+        return;
+    }
+
+    createMapMarker(payload);
+    closeMarkerModal();
 }
 
 function loadObjects(filters) {
@@ -238,6 +328,7 @@ function loadObjects(filters) {
             objectsData = data.items || [];
             renderMarkers(objectsData);
             renderObjectsList(objectsData);
+            renderFilteredMapMarkers();
 
             if (objectsData.length === 0) {
                 document.getElementById('noResults').style.display = 'block';
@@ -301,23 +392,27 @@ function loadFilters() {
     fetch('/api/v1/filters')
         .then(function (response) { return response.json(); })
         .then(function (data) {
-            populateSelect('categoryFilter', data.categories);
-            populateSelect('statusFilter', data.statuses);
-            populateSelect('cityFilter', data.cities);
+            filterOptions.categories = data.categories || [];
+            filterOptions.organizations = data.organizations || [];
+            populateSelect('categoryFilter', filterOptions.categories, 'Все категории');
+            populateSelect('organizationFilter', filterOptions.organizations, 'Все организации');
+            populateSelect('markerCategory', filterOptions.categories, 'Не выбрана');
+            populateSelect('markerOrganization', filterOptions.organizations, 'Не выбрана');
         })
         .catch(function (error) {
             console.error('Ошибка загрузки фильтров:', error);
         });
 }
 
-function populateSelect(id, values) {
+function populateSelect(id, values, emptyText) {
     var select = document.getElementById(id);
-    select.innerHTML = '<option value="">Все</option>';
+    if (!select) return;
+    select.innerHTML = '<option value="">' + (emptyText || 'Все') + '</option>';
 
     values.forEach(function (val) {
         var option = document.createElement('option');
-        option.value = val;
-        option.textContent = val;
+        option.value = typeof val === 'object' ? val.id : val;
+        option.textContent = typeof val === 'object' ? val.name : val;
         select.appendChild(option);
     });
 }
@@ -326,7 +421,7 @@ function showObjectCard(obj) {
     document.getElementById('cardName').textContent = obj.name;
     document.getElementById('cardAddress').textContent = obj.address || '-';
     document.getElementById('cardCategory').textContent = obj.category || '-';
-    document.getElementById('cardStatus').textContent = obj.status || '-';
+    document.getElementById('cardOrganization').textContent = obj.organization || '-';
     document.getElementById('cardCoords').textContent = obj.latitude + ', ' + obj.longitude;
     document.getElementById('cardDescription').textContent = obj.description || '-';
 
@@ -334,29 +429,38 @@ function showObjectCard(obj) {
 }
 
 function applyFilters() {
+    loadObjects(getCurrentFilters());
+}
+
+function getCurrentFilters() {
     var filters = {};
 
     var search = document.getElementById('searchInput').value;
     if (search) filters.search = search;
 
     var category = document.getElementById('categoryFilter').value;
-    if (category) filters.category = category;
+    if (category) filters.category_id = category;
 
-    var status = document.getElementById('statusFilter').value;
-    if (status) filters.status = status;
+    var organization = document.getElementById('organizationFilter').value;
+    if (organization) filters.organization_id = organization;
 
-    var city = document.getElementById('cityFilter').value;
-    if (city) filters.city = city;
-
-    loadObjects(filters);
+    return filters;
 }
 
 function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('categoryFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('cityFilter').value = '';
+    document.getElementById('organizationFilter').value = '';
     loadObjects({});
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function showLoading(show) {
@@ -369,5 +473,8 @@ document.getElementById('clearFilters').addEventListener('click', clearFilters);
 document.getElementById('closeCard').addEventListener('click', function () {
     document.getElementById('objectCard').style.display = 'none';
 });
+document.getElementById('markerForm').addEventListener('submit', submitMarkerForm);
+document.getElementById('closeMarkerModal').addEventListener('click', closeMarkerModal);
+document.getElementById('cancelMarkerModal').addEventListener('click', closeMarkerModal);
 
 document.addEventListener('DOMContentLoaded', initMap);

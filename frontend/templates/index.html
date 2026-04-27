@@ -76,14 +76,8 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label for="statusFilter">Статус</label>
-                <select id="statusFilter">
-                    <option value="">Все</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="cityFilter">Город</label>
-                <select id="cityFilter">
+                <label for="organizationFilter">Организация</label>
+                <select id="organizationFilter">
                     <option value="">Все</option>
                 </select>
             </div>
@@ -106,6 +100,41 @@
             <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
         </main>
 
+        <div id="markerModal" class="marker-modal" style="display: none;">
+            <div class="marker-modal__dialog">
+                <div class="marker-modal__header">
+                    <h3>Добавить метку</h3>
+                    <button type="button" id="closeMarkerModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="markerForm" class="marker-form">
+                    <div class="filter-group">
+                        <label for="markerName">Название</label>
+                        <input type="text" id="markerName" name="name" required maxlength="255" placeholder="Название метки">
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerOrganization">Организация</label>
+                        <select id="markerOrganization" name="organization_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerCategory">Категория</label>
+                        <select id="markerCategory" name="category_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerDescription">Описание</label>
+                        <textarea id="markerDescription" name="description" placeholder="Описание метки"></textarea>
+                    </div>
+                    <div class="marker-modal__actions">
+                        <button type="button" id="cancelMarkerModal">Отмена</button>
+                        <button type="submit">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
 
 
         <aside class="object-card" id="objectCard" style="display: none;">
@@ -113,7 +142,7 @@
             <h3 id="cardName"></h3>
             <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
             <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
-            <p><strong>Статус:</strong> <span id="cardStatus"></span></p>
+            <p><strong>Организация:</strong> <span id="cardOrganization"></span></p>
             <p><strong>Координаты:</strong> <span id="cardCoords"></span></p>
             <p><strong>Описание:</strong> <span id="cardDescription"></span></p>
         </aside>

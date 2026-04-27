@@ -131,8 +131,55 @@ class UserUpdateRequest(BaseModel):
 class UserAdminUpdateRequest(UserUpdateRequest):
     """Запрос для обновления пользователя администратором"""
 
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
+    role_ids: Optional[List[int]] = None
+
+    @field_validator("password")
+    @classmethod
+    def validate_admin_password(cls, v):
+        if v is None:
+            return v
+        if not re.search(r"[A-Z]", v) or not re.search(r"[a-z]", v) or not re.search(r"[0-9]", v):
+            raise ValueError("Пароль должен содержать заглавные буквы, строчные буквы и цифры")
+        return v
+
+
+class UserAdminCreateRequest(BaseModel):
+    """Запрос для создания пользователя администратором"""
+
+    username: str = Field(..., min_length=3, max_length=100)
+    email: EmailStr
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    is_active: bool = True
+    is_verified: bool = False
+    role_ids: List[int] = Field(default_factory=list)
+    password: Optional[str] = Field(None, min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_create_password(cls, v):
+        if v is None:
+            return v
+        if not re.search(r"[A-Z]", v) or not re.search(r"[a-z]", v) or not re.search(r"[0-9]", v):
+            raise ValueError("Пароль должен содержать заглавные буквы, строчные буквы и цифры")
+        return v
+
+
+class UserAdminCreateResponse(UserDetailResponse):
+    """Ответ создания пользователя администратором"""
+
+    temporary_password: Optional[str] = None
+
+
+class UserBulkStatusRequest(BaseModel):
+    """Запрос для массового изменения статуса пользователей"""
+
+    user_ids: List[int] = Field(..., min_length=1)
+    is_active: bool
 
 
 # ============================================================================
@@ -179,6 +226,7 @@ class RoleCreateRequest(BaseModel):
 class RoleUpdateRequest(BaseModel):
     """Запрос для обновления роли"""
 
+    name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = None
     permission_ids: Optional[List[int]] = None
 
@@ -260,6 +308,27 @@ class CategoryCreateRequest(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+
+
+class CategoryUpdateRequest(BaseModel):
+    """Запрос для обновления категории"""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class OrganizationResponse(LabelResponse):
+    """Информация об организации"""
+
+
+class OrganizationCreateRequest(LabelCreateRequest):
+    """Запрос для создания организации"""
+
+
+class OrganizationUpdateRequest(LabelUpdateRequest):
+    """Запрос для обновления организации"""
 
 
 class StatusResponse(BaseModel):

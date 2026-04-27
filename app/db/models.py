@@ -238,7 +238,7 @@ class Label(Base):
 
     # Отношения
     created_by_user = relationship('User', back_populates='labels')
-    geo_objects = relationship('GeoObject', secondary=object_labels)
+    geo_objects = relationship('GeoObject', secondary=object_labels, back_populates='labels')
 
     def __repr__(self):
         return f'<Label {self.name}>'
@@ -270,7 +270,7 @@ class GeoObject(Base):
     category = relationship('CategoryReference', back_populates='geo_objects')
     creator = relationship('User', foreign_keys=[created_by], back_populates='geo_objects_created')
     updater = relationship('User', foreign_keys=[updated_by], back_populates='geo_objects_updated')
-    labels = relationship('Label', secondary=object_labels)
+    labels = relationship('Label', secondary=object_labels, back_populates='geo_objects')
     comments = relationship('ObjectComment', back_populates='geo_object', cascade='all, delete-orphan')
 
     __table_args__ = (

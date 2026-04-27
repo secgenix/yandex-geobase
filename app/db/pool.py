@@ -11,6 +11,7 @@ settings = get_settings()
 # Создание engine с параметрами для PostgreSQL
 engine = create_engine(
     settings.database_url,
+    connect_args={"options": "-c client_encoding=utf8"},
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,

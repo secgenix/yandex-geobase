@@ -94,6 +94,11 @@ function displayUserProfile() {
         const lastLoginDate = new Date(currentUser.last_login).toLocaleString('ru-RU');
         document.getElementById('last-login-field').value = lastLoginDate;
     }
+
+    const adminPanelAction = document.getElementById('adminPanelAction');
+    if (adminPanelAction) {
+        adminPanelAction.style.display = currentUser.roles?.includes('admin') ? 'flex' : 'none';
+    }
 }
 
 function setupEventListeners() {

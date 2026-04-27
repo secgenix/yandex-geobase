@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db.pool import get_db
-from app.db.models import User, GeoObject
+from app.db.models import User, GeoObject, CategoryReference, Label
 from app.models.schemas import (
     GeoObjectResponse, PaginatedResponse, SuccessResponse
 )
@@ -40,6 +40,8 @@ async def health_check():
 @router.get("/geo-objects", response_model=PaginatedResponse)
 async def list_geo_objects(
     search: str = Query(None, description="Поиск по названию или описанию"),
+    category_id: int = Query(None, description="Фильтр по категории"),
+    organization_id: int = Query(None, description="Фильтр по организации"),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
@@ -55,6 +57,12 @@ async def list_geo_objects(
                 (GeoObject.name.ilike(f"%{search}%")) |
                 (GeoObject.description.ilike(f"%{search}%"))
             )
+
+        if category_id:
+            query = query.filter(GeoObject.category_id == category_id)
+
+        if organization_id:
+            query = query.join(GeoObject.labels).filter(Label.id == organization_id)
         
         total = query.count()
         items = query.offset(offset).limit(limit).all()
@@ -102,20 +110,19 @@ async def list_map_markers(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
-    # Маркеры — это GeoObject с минимальным наполнением.
-    # Сигнализируем маркер через name='Метка' и максимально "пустую" карточку.
-    query = db.query(GeoObject).filter(
-        GeoObject.name == "Метка",
-        GeoObject.category_id.is_(None),
-        GeoObject.address.is_(None),
-        GeoObject.description.is_(None),
-    )
+    query = db.query(GeoObject).filter(GeoObject.address.is_(None))
     total = query.count()
     items = query.order_by(GeoObject.id.desc()).offset(offset).limit(limit).all()
     return {
         "items": [
             {
                 "id": o.id,
+                "name": o.name,
+                "description": o.description,
+                "category_id": o.category_id,
+                "category": o.category.name if o.category else None,
+                "organization_id": o.labels[0].id if o.labels else None,
+                "organization": o.labels[0].name if o.labels else None,
                 "latitude": o.latitude,
                 "longitude": o.longitude,
                 "created_by": o.created_by,
@@ -135,21 +142,48 @@ async def create_map_marker(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # ожидаем { latitude, longitude }
     if "latitude" not in payload or "longitude" not in payload:
         raise HTTPException(status_code=400, detail="latitude и longitude обязательны")
 
+    name = (payload.get("name") or "Метка").strip()
+    description = (payload.get("description") or None)
+    category_id = payload.get("category_id") or None
+    organization_id = payload.get("organization_id") or None
+
+    category = None
+    if category_id:
+        category = db.query(CategoryReference).filter(CategoryReference.id == int(category_id)).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Категория не найдена")
+
+    organization = None
+    if organization_id:
+        organization = db.query(Label).filter(Label.id == int(organization_id)).first()
+        if not organization:
+            raise HTTPException(status_code=404, detail="Организация не найдена")
+
     marker_obj = GeoObject(
-        name="Метка",
+        name=name,
+        description=description,
+        category_id=category.id if category else None,
         latitude=float(payload["latitude"]),
         longitude=float(payload["longitude"]),
         created_by=current_user.id,
     )
+    if organization:
+        marker_obj.labels.append(organization)
+
     db.add(marker_obj)
     db.commit()
     db.refresh(marker_obj)
     return {
         "id": marker_obj.id,
+        "name": marker_obj.name,
+        "description": marker_obj.description,
+        "category_id": marker_obj.category_id,
+        "category": marker_obj.category.name if marker_obj.category else None,
+        "organization_id": organization.id if organization else None,
+        "organization": organization.name if organization else None,
         "latitude": marker_obj.latitude,
         "longitude": marker_obj.longitude,
         "created_by": marker_obj.created_by,

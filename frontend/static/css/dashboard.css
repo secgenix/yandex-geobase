@@ -348,6 +348,35 @@ body {
     display: block;
 }
 
+.admin-panel-action {
+    margin-top: 24px;
+    padding: 22px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2c3e50, #667eea);
+    color: white;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    box-shadow: 0 10px 30px rgba(44, 62, 80, 0.22);
+}
+
+.admin-panel-action p {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.btn-admin-panel {
+    padding: 14px 24px;
+    background: white;
+    color: #2c3e50;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.btn-admin-panel:hover {
+    background: #f5f7fa;
+}
+
 /* ============================================================================
    ALERTS
    ============================================================================ */

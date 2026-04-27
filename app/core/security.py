@@ -13,6 +13,7 @@ from functools import lru_cache
 import jwt
 from passlib.context import CryptContext
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 # ============================================================================
 # КОНФИГУРАЦИЯ
@@ -25,15 +26,19 @@ class SecuritySettings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     BCRYPT_ROUNDS: int = 12
-    
-    class Config:
-        env_file = ".env"
+
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
 
 @lru_cache()
 def get_security_settings():
     """Получить настройки безопасности"""
-    return SecuritySettings()
+    settings = SecuritySettings()
+    if settings.SECRET_KEY == "your-secret-key-change-in-production":
+        print("[security] WARNING: SECRET_KEY uses the development default. Set SECRET_KEY in .env for non-local use.")
+    if settings.ALGORITHM not in {"HS256", "HS384", "HS512"}:
+        raise ValueError("Unsupported JWT algorithm")
+    return settings
 
 
 # ============================================================================

@@ -84,6 +84,20 @@ body {
     border-radius: 4px;
 }
 
+.filter-group input,
+.filter-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.filter-group textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
 .filters button {
     width: 100%;
     padding: 10px;
@@ -222,4 +236,79 @@ body {
 /* меняем фон в пункте меню при наведении мыши */
 .context-menu ul li a:hover {
     background-color: #eee;
+}
+
+.marker-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.marker-modal__dialog {
+    width: min(460px, 100%);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.marker-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.marker-modal__header button {
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.marker-form {
+    padding: 20px;
+}
+
+.marker-modal__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.marker-modal__actions button {
+    width: auto;
+    min-width: 110px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-areas:
+            "header"
+            "filters"
+            "main"
+            "card";
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+    }
+
+    .header,
+    .header-title {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .search-box input {
+        width: 100%;
+    }
+
+    .filters {
+        max-height: 42vh;
+        overflow-y: auto;
+    }
 }

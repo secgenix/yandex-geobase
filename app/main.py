@@ -5,13 +5,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db.pool import get_db
-from app.db.models import User
+from app.db.models import User, GeoObject, CategoryReference, Label
 from app.core.dependencies import get_current_user
 from app.api.auth_routes import router as auth_router
 from app.api.admin_routes import router as admin_router
 from app.api.routes import router as api_router
 from app.db.pool import engine
 from app.db.models import Base
+from app.db.seed import seed_initial_data
 
 app = FastAPI(title="Геобаза API", version="2.0.0")
 
@@ -41,6 +42,11 @@ async def _create_tables():
     # Не валим весь сервер, если БД недоступна (API, статика и т.п. должны подняться).
     try:
         Base.metadata.create_all(bind=engine)
+        db = next(get_db())
+        try:
+            seed_initial_data(db)
+        finally:
+            db.close()
     except Exception as e:
         # Логируем в stdout, чтобы было видно причину (например, connection refused).
         print(f"[startup] DB init skipped: {e!r}")
@@ -188,14 +194,51 @@ async def test_auth(current_user=None):
 @app.get("/api/v1/objects")
 async def get_objects(
     search: str | None = None,
+    category_id: int | None = None,
+    organization_id: int | None = None,
     category: str | None = None,
-    status: str | None = None,
-    city: str | None = None,
     bbox: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    db=Depends(get_db),
 ):
-    return {"items": [], "total": 0}
+    query = db.query(GeoObject)
+
+    if search:
+        query = query.filter(
+            (GeoObject.name.ilike(f"%{search}%")) |
+            (GeoObject.description.ilike(f"%{search}%"))
+        )
+    if category_id:
+        query = query.filter(GeoObject.category_id == category_id)
+    elif category:
+        query = query.join(GeoObject.category).filter(CategoryReference.name == category)
+    if organization_id:
+        query = query.join(GeoObject.labels).filter(Label.id == organization_id)
+
+    total = query.count()
+    items = query.order_by(GeoObject.id.desc()).offset(offset).limit(limit).all()
+    return {
+        "items": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "address": item.address,
+                "description": item.description,
+                "category_id": item.category_id,
+                "category": item.category.name if item.category else None,
+                "organization_id": item.labels[0].id if item.labels else None,
+                "organization": item.labels[0].name if item.labels else None,
+                "latitude": item.latitude,
+                "longitude": item.longitude,
+                "created_at": item.created_at,
+            }
+            for item in items
+        ],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @app.get("/api/v1/objects/{obj_id}")
@@ -204,11 +247,12 @@ async def get_object(obj_id: int):
 
 
 @app.get("/api/v1/filters")
-async def get_filters():
+async def get_filters(db=Depends(get_db)):
+    categories = db.query(CategoryReference).order_by(CategoryReference.name).all()
+    organizations = db.query(Label).order_by(Label.name).all()
     return {
-        "categories": ["office", "store"],
-        "statuses": [],
-        "cities": [],
+        "categories": [{"id": item.id, "name": item.name} for item in categories],
+        "organizations": [{"id": item.id, "name": item.name} for item in organizations],
     }
 
 
