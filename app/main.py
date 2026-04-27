@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
@@ -89,6 +89,11 @@ async def root(request: Request):
     content = read_template("index")
     content = content.replace("{{ api_key }}", settings.YANDEX_MAPS_API_KEY)
     return HTMLResponse(content)
+
+@app.get("/favicon.ico")
+async def favicon():
+    # В проекте нет favicon, чтобы не засорять консоль 404 в dev.
+    return Response(status_code=204)
 
 
 @app.get("/index.html", response_class=HTMLResponse)

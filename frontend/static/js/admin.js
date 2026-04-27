@@ -72,7 +72,6 @@ function setupEventListeners() {
     // Кнопки управления
     document.getElementById('addUserBtn')?.addEventListener('click', () => showUserForm());
     document.getElementById('addRoleBtn')?.addEventListener('click', () => showRoleForm());
-    document.getElementById('addLabelBtn')?.addEventListener('click', () => showLabelForm());
 
     // Поиск и фильтры
     document.getElementById('userSearchBtn')?.addEventListener('click', () => loadUsers());
@@ -102,6 +101,10 @@ function handleMenuItemClick(e) {
         activeSection.classList.add('active');
         currentPage = sectionId;
     }
+
+    if (sectionId === 'manage-labels') {
+        loadMapMarkers();
+    }
 }
 
 async function loadDashboardData() {
@@ -109,11 +112,11 @@ async function loadDashboardData() {
         const token = localStorage.getItem('access_token');
 
         // Загрузить статистику
-        const [usersResponse, rolesResponse, permissionsResponse, labelsResponse] = await Promise.all([
+        const [usersResponse, rolesResponse, permissionsResponse, mapMarkersResponse] = await Promise.all([
             fetch(`${API_BASE_URL}/admin/users?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`${API_BASE_URL}/admin/roles?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`${API_BASE_URL}/admin/permissions?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${API_BASE_URL}/admin/labels?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetch(`${API_BASE_URL}/map-markers?limit=1&offset=0`, { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (usersResponse.ok) {
@@ -131,8 +134,8 @@ async function loadDashboardData() {
             document.getElementById('permissionCount').textContent = data.total || 0;
         }
 
-        if (labelsResponse.ok) {
-            const data = await labelsResponse.json();
+        if (mapMarkersResponse.ok) {
+            const data = await mapMarkersResponse.json();
             document.getElementById('labelCount').textContent = data.total || 0;
         }
 
@@ -141,7 +144,7 @@ async function loadDashboardData() {
             loadUsers(),
             loadRoles(),
             loadPermissions(),
-            loadLabels(),
+            loadMapMarkers(),
             loadLogs()
         ]);
 
@@ -292,46 +295,48 @@ async function loadPermissions(offset = 0, limit = 50) {
     }
 }
 
-async function loadLabels(offset = 0, limit = 20) {
+async function loadMapMarkers(offset = 0, limit = 50) {
     try {
         const token = localStorage.getItem('access_token');
-        const response = await fetch(`${API_BASE_URL}/admin/labels?limit=${limit}&offset=${offset}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        if (!response.ok) throw new Error('Ошибка загрузки меток');
+        const response = await fetch(`${API_BASE_URL}/map-markers?limit=${limit}&offset=${offset}`, { headers });
+        if (!response.ok) throw new Error(`Ошибка загрузки меток на карте (HTTP ${response.status})`);
 
         const data = await response.json();
-        const tbody = document.getElementById('labelsTable');
+        const tbody = document.getElementById('mapMarkersTable');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
         if (data.items && data.items.length > 0) {
-            data.items.forEach(label => {
+            data.items.forEach(marker => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${label.id}</td>
-                    <td>${label.name}</td>
-                    <td>${label.description || '-'}</td>
-                    <td><span style="background: ${label.color}; padding: 4px 8px; border-radius: 3px; color: white;">${label.color}</span></td>
-                    <td>${label.created_by}</td>
-                    <td>${new Date(label.created_at).toLocaleDateString('ru-RU')}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon btn-icon-edit" onclick="editLabel(${label.id})">✏️</button>
-                            <button class="btn-icon btn-icon-delete" onclick="deleteLabel(${label.id})">🗑️</button>
-                        </div>
-                    </td>
+                    <td>${marker.id ?? '-'}</td>
+                    <td>${marker.latitude ?? '-'}</td>
+                    <td>${marker.longitude ?? '-'}</td>
+                    <td>${marker.created_by ?? '-'}</td>
+                    <td>${marker.created_at ? new Date(marker.created_at).toLocaleString('ru-RU') : '-'}</td>
                 `;
                 tbody.appendChild(row);
             });
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Метки не найдены</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Метки на карте не найдены</td></tr>';
         }
 
-        renderPagination('labelsPagination', data.total, offset, limit, (newOffset) => loadLabels(newOffset, limit));
-
+        renderPagination(
+            'mapMarkersPagination',
+            data.total || 0,
+            offset,
+            limit,
+            (newOffset) => loadMapMarkers(newOffset, limit)
+        );
     } catch (error) {
-        console.error('Error loading labels:', error);
+        console.error('Error loading map markers:', error);
+        const tbody = document.getElementById('mapMarkersTable');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center">Ошибка загрузки: ${String(error?.message || error)}</td></tr>`;
+        }
     }
 }
 
