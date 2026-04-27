@@ -1,6 +1,5 @@
 // Authentication
 const API_BASE_URL = '/api/v1';
-document.oncontextmenu = function () { return false; };
 document.addEventListener('DOMContentLoaded', () => {
     updateAuthHeader();
 });
@@ -53,6 +52,10 @@ const DEFAULT_ZOOM = 10;
 let map = null;
 let markers = [];
 let objectsData = [];
+let mapContextMenuEl = null;
+let lastContextCoords = null;
+let mapMarkerCollection = null;
+let mapMarkerPlacemarks = [];
 
 function initMap() {
     ymaps.ready(function () {
@@ -62,9 +65,165 @@ function initMap() {
             controls: ['zoomControl', 'typeSelector']
         });
 
+        mapMarkerCollection = new ymaps.GeoObjectCollection();
+        map.geoObjects.add(mapMarkerCollection);
+
+        setupMapContextMenu();
+        loadMapMarkers();
         loadObjects();
         loadFilters();
     });
+}
+
+function setupMapContextMenu() {
+    mapContextMenuEl = document.getElementById('mapContextMenu');
+    var mapEl = document.getElementById('map');
+    if (!mapContextMenuEl || !mapEl || !map) return;
+
+    // Используем нативное событие карты, чтобы coords совпадали с курсором
+    map.events.add('contextmenu', function (e) {
+        var coords = e.get('coords');
+        var domEvent = e.get('domEvent');
+
+        lastContextCoords = coords || null;
+
+        // domEvent может быть undefined в редких случаях
+        var oe = domEvent && domEvent.originalEvent ? domEvent.originalEvent : null;
+        var clientX = oe ? oe.clientX : 0;
+        var clientY = oe ? oe.clientY : 0;
+
+        showMapContextMenu(clientX, clientY);
+
+        if (domEvent && typeof domEvent.preventDefault === 'function') domEvent.preventDefault();
+        if (domEvent && typeof domEvent.stopPropagation === 'function') domEvent.stopPropagation();
+    });
+
+    // Клик в меню не должен закрывать его до обработки
+    mapContextMenuEl.addEventListener('click', function (event) {
+        event.stopPropagation();
+
+        var target = event.target;
+        if (target && target.matches && target.matches('a[data-action]')) {
+            event.preventDefault();
+            var action = target.getAttribute('data-action');
+
+            if (action === 'add-marker') {
+                if (lastContextCoords) createMapMarker(lastContextCoords);
+            }
+
+            hideMapContextMenu();
+        }
+    });
+
+    // Закрытие: любой левый клик вне меню
+    document.addEventListener('click', function (event) {
+        if (!mapContextMenuEl) return;
+        if (mapContextMenuEl.style.display === 'none') return;
+        if (!event.target || !mapContextMenuEl.contains(event.target)) hideMapContextMenu();
+    });
+
+    // Закрытие: Esc
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') hideMapContextMenu();
+    });
+
+    // Закрытие: любое действие с картой (перемещение/зум)
+    map.events.add('actionbegin', function () {
+        hideMapContextMenu();
+    });
+    map.events.add('click', function () {
+        hideMapContextMenu();
+    });
+}
+
+function showMapContextMenu(clientX, clientY) {
+    if (!mapContextMenuEl) return;
+
+    // сначала показываем, чтобы корректно измерить размеры
+    mapContextMenuEl.style.display = 'block';
+
+    var menuRect = mapContextMenuEl.getBoundingClientRect();
+    var margin = 8;
+
+    var x = clientX;
+    var y = clientY;
+
+    var maxX = window.innerWidth - menuRect.width - margin;
+    var maxY = window.innerHeight - menuRect.height - margin;
+
+    if (x > maxX) x = Math.max(margin, maxX);
+    if (y > maxY) y = Math.max(margin, maxY);
+
+    mapContextMenuEl.style.left = x + 'px';
+    mapContextMenuEl.style.top = y + 'px';
+}
+
+function hideMapContextMenu() {
+    if (!mapContextMenuEl) return;
+    mapContextMenuEl.style.display = 'none';
+}
+
+function renderMapMarker(marker) {
+    if (!mapMarkerCollection || !marker) return;
+
+    var coords = [marker.latitude, marker.longitude];
+    var placemark = new ymaps.Placemark(
+        coords,
+        {
+            id: marker.id,
+            balloonContentBody: '<b>Метка</b><br>' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6)
+        },
+        {
+            preset: 'islands#redIcon'
+        }
+    );
+
+    mapMarkerCollection.add(placemark);
+    mapMarkerPlacemarks.push(placemark);
+}
+
+function loadMapMarkers() {
+    fetch('/api/v1/map-markers')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var items = (data && data.items) ? data.items : [];
+            items.forEach(renderMapMarker);
+        })
+        .catch(function (e) {
+            console.error('Ошибка загрузки меток:', e);
+        });
+}
+
+function createMapMarker(coords) {
+    if (!coords) return;
+
+    var token = localStorage.getItem('access_token');
+
+    fetch('/api/v1/map-markers', {
+        method: 'POST',
+        headers: Object.assign(
+            { 'Content-Type': 'application/json' },
+            token ? { 'Authorization': 'Bearer ' + token } : {}
+        ),
+        body: JSON.stringify({ latitude: coords[0], longitude: coords[1] })
+    })
+        .then(function (r) {
+            if (!r.ok) {
+                return r.json().catch(function () { return null; }).then(function (body) {
+                    var msg = body && body.detail ? body.detail : ('HTTP ' + r.status);
+                    throw new Error(msg);
+                });
+            }
+            return r.json();
+        })
+        .then(function (marker) {
+            renderMapMarker(marker);
+        })
+        .catch(function (e) {
+            console.error('Ошибка сохранения метки:', e);
+            // Фолбэк: показать локально, даже если БД недоступна
+            renderMapMarker({ id: null, latitude: coords[0], longitude: coords[1] });
+        });
 }
 
 function loadObjects(filters) {
@@ -212,38 +371,3 @@ document.getElementById('closeCard').addEventListener('click', function () {
 });
 
 document.addEventListener('DOMContentLoaded', initMap);
-
-$(document).ready(function () {
-
-    // отслеживаем нажатие мыши на странице
-    $(document).mousedown(function (event) {
-        // если нажата правая кнопка мыши (which === 3)
-        if (event.which === 3) {
-            // удаляем предыдущее меню
-            $('.context-menu').remove();
-
-            // создаём новый блок, в котором будет наше меню
-            $('<div/>', {
-                class: 'context-menu'
-            })
-                .css({
-                    left: event.pageX + 'px',
-                    top: event.pageY + 'px'
-                })
-                .appendTo('body')
-                .append(
-                    $('<ul/>')
-                        .append('<li><a href="#">Привет!</a></li>')
-                        .append('<li><a href="#">Это журнал «Код»!</a></li>')
-                        .append('<li><a href="#">А это — новое контекстное меню</a></li>')
-                );
-        }
-    });
-
-    // закрываем меню при клике вне него
-    $(document).click(function (event) {
-        if (event.which === 1 && !$(event.target).closest('.context-menu').length) {
-            $('.context-menu').remove();
-        }
-    });
-});

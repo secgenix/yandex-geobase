@@ -10,6 +10,8 @@ from app.core.dependencies import get_current_user
 from app.api.auth_routes import router as auth_router
 from app.api.admin_routes import router as admin_router
 from app.api.routes import router as api_router
+from app.db.pool import engine
+from app.db.models import Base
 
 app = FastAPI(title="Геобаза API", version="2.0.0")
 
@@ -31,6 +33,17 @@ app.add_middleware(
 # ============================================================================
 # МАРШРУТЫ
 # ============================================================================
+
+# Создание таблиц (проект без миграций)
+@app.on_event("startup")
+async def _create_tables():
+    # В dev-режиме Postgres может быть не запущен.
+    # Не валим весь сервер, если БД недоступна (API, статика и т.п. должны подняться).
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        # Логируем в stdout, чтобы было видно причину (например, connection refused).
+        print(f"[startup] DB init skipped: {e!r}")
 
 # Регистрация auth routes
 app.include_router(auth_router)

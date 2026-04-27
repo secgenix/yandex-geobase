@@ -97,6 +97,11 @@
 
         <main class="main">
             <div id="map" class="map" style="height: 100%;"></div>
+            <div id="mapContextMenu" class="context-menu" style="display: none;">
+                <ul>
+                    <li><a href="#" data-action="add-marker">Установить метку</a></li>
+                </ul>
+            </div>
             <div id="loading" class="loading" style="display: none;">Загрузка...</div>
             <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
         </main>
@@ -115,7 +120,6 @@
     </div>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU"></script>
-    <script src=”https://code.jquery.com/jquery-3.6.0.js” type=”text/javascript”></script>
     <script src="../static/js/script.js"></script>
 </body>
 

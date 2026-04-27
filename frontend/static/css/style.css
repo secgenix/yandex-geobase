@@ -180,9 +180,9 @@ body {
     /* настройки шрифта */
     font-family: sans-serif;
     /* устанавливаем абсолютное позиционирование */
-    position: absolute;
-    /* показываем меню */
-    display: block;
+    position: fixed;
+    /* скрываем по умолчанию (показываем через JS) */
+    display: none;
     /* цвет фона и настройки рамки вокруг меню */
     background-color: #fff;
     border: 1px solid #333;
