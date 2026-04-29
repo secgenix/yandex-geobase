@@ -38,6 +38,11 @@ class Settings:
         self.DATABASE_URL = _get_env("DATABASE_URL", "")
         self.APP_HOST = _get_env("APP_HOST", "0.0.0.0")
         self.APP_PORT = int(_get_env("APP_PORT", "8000"))
+        self.DEFAULT_ADMIN_USERNAME = _get_env("DEFAULT_ADMIN_USERNAME", "")
+        self.DEFAULT_ADMIN_EMAIL = _get_env("DEFAULT_ADMIN_EMAIL", "")
+        self.DEFAULT_ADMIN_PASSWORD = _get_env("DEFAULT_ADMIN_PASSWORD", "")
+        self.DEFAULT_ADMIN_FIRST_NAME = _get_env("DEFAULT_ADMIN_FIRST_NAME", "")
+        self.DEFAULT_ADMIN_LAST_NAME = _get_env("DEFAULT_ADMIN_LAST_NAME", "")
         self._db_url = None
 
     @property

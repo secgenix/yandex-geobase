@@ -1,5 +1,8 @@
 """Initial database fixtures for local/dev startup."""
 
+from app.core.config import get_settings
+from app.core.security import hash_password
+
 from sqlalchemy.orm import Session
 
 from app.db.models import Permission, Role, User
@@ -67,6 +70,52 @@ ROLE_PERMISSION_NAMES = {
 }
 
 
+def _seed_default_admin(db: Session, admin_role: Role) -> None:
+    settings = get_settings()
+    username = settings.DEFAULT_ADMIN_USERNAME.strip()
+    email = settings.DEFAULT_ADMIN_EMAIL.strip()
+    password = settings.DEFAULT_ADMIN_PASSWORD
+
+    if not username or not email or not password:
+        print("[seed] Default admin is not configured. Set DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL and DEFAULT_ADMIN_PASSWORD in .env.")
+        return
+
+    admin = db.query(User).filter(User.username == username).first()
+    if admin is None:
+        email_owner = db.query(User).filter(User.email == email).first()
+        if email_owner is not None:
+            print(f"[seed] Default admin skipped: email {email!r} is already used by another user.")
+            return
+
+        admin = User(
+            username=username,
+            email=email,
+            password_hash=hash_password(password),
+            first_name=settings.DEFAULT_ADMIN_FIRST_NAME.strip() or None,
+            last_name=settings.DEFAULT_ADMIN_LAST_NAME.strip() or None,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(admin)
+        db.flush()
+        print(f"[seed] Default admin {username!r} created.")
+    else:
+        if admin.email != email:
+            email_owner = db.query(User).filter(User.email == email, User.id != admin.id).first()
+            if email_owner is None:
+                admin.email = email
+
+        admin.is_active = True
+        admin.is_verified = True
+        if settings.DEFAULT_ADMIN_FIRST_NAME.strip():
+            admin.first_name = settings.DEFAULT_ADMIN_FIRST_NAME.strip()
+        if settings.DEFAULT_ADMIN_LAST_NAME.strip():
+            admin.last_name = settings.DEFAULT_ADMIN_LAST_NAME.strip()
+
+    if admin_role not in admin.roles:
+        admin.roles.append(admin_role)
+
+
 def seed_initial_data(db: Session) -> None:
     roles_by_name = {role.name: role for role in db.query(Role).all()}
     permissions_by_name = {permission.name: permission for permission in db.query(Permission).all()}
@@ -97,5 +146,9 @@ def seed_initial_data(db: Session) -> None:
         users_without_roles = db.query(User).filter(~User.roles.any()).all()
         for user in users_without_roles:
             user.roles.append(user_role)
+
+    admin_role = roles_by_name.get("admin")
+    if admin_role:
+        _seed_default_admin(db, admin_role)
 
     db.commit()

@@ -198,6 +198,7 @@ function renderMapMarker(marker) {
     var coords = [marker.latitude, marker.longitude];
     var title = marker.name || 'Метка';
     var details = [];
+    if (marker.address) details.push('Адрес: ' + escapeHtml(marker.address));
     if (marker.organization) details.push('Организация: ' + escapeHtml(marker.organization));
     if (marker.category) details.push('Категория: ' + escapeHtml(marker.category));
     if (marker.description) details.push(escapeHtml(marker.description));
@@ -205,7 +206,7 @@ function renderMapMarker(marker) {
         coords,
         {
             id: marker.id,
-            balloonContentBody: '<b>' + escapeHtml(title) + '</b><br>' + details.join('<br>') + '<br>' + coords[0].toFixed(6) + ', ' + coords[1].toFixed(6)
+            balloonContentBody: '<b>' + escapeHtml(title) + '</b><br>' + details.join('<br>')
         },
         {
             preset: 'islands#redIcon'
@@ -313,10 +314,7 @@ function openMarkerModal(coords) {
     form.dataset.latitude = coords[0];
     form.dataset.longitude = coords[1];
 
-    // Очистка превью изображения
-    var imagePreview = document.getElementById('imagePreview');
-    if (imagePreview) imagePreview.style.display = 'none';
-    document.getElementById('previewImg').src = '';
+    setImagePreview(null);
 
     // Попытка получить адрес через геокодинг Яндекс.Карт
     if (ymaps && map) {
@@ -324,10 +322,23 @@ function openMarkerModal(coords) {
             var firstGeoObject = res.geoObjects.get(0);
             if (firstGeoObject) {
                 var address = firstGeoObject.getAddressLine();
-                document.getElementById('markerAddress').value = address || '';
+                document.getElementById('markerAddress').value = getDisplayAddress({
+                    address: address,
+                    latitude: coords[0],
+                    longitude: coords[1]
+                });
             }
         }).catch(function (err) {
             console.error('Ошибка геокодинга:', err);
+            document.getElementById('markerAddress').value = getDisplayAddress({
+                latitude: coords[0],
+                longitude: coords[1]
+            });
+        });
+    } else {
+        document.getElementById('markerAddress').value = getDisplayAddress({
+            latitude: coords[0],
+            longitude: coords[1]
         });
     }
 
@@ -344,14 +355,33 @@ function submitMarkerForm(event) {
     event.preventDefault();
 
     var form = event.currentTarget;
+    var name = document.getElementById('markerName').value.trim();
+    var latitude = Number(form.dataset.latitude);
+    var longitude = Number(form.dataset.longitude);
+    var address = document.getElementById('markerAddress').value.trim() || getDisplayAddress({
+        latitude: latitude,
+        longitude: longitude
+    });
+
+    if (!name) {
+        alert('Укажите название метки.');
+        document.getElementById('markerName').focus();
+        return;
+    }
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        alert('Не удалось определить место для метки. Откройте форму заново через карту.');
+        return;
+    }
+
     var payload = {
-        latitude: Number(form.dataset.latitude),
-        longitude: Number(form.dataset.longitude),
-        name: document.getElementById('markerName').value.trim(),
+        latitude: latitude,
+        longitude: longitude,
+        name: name,
         organization_id: document.getElementById('markerOrganization').value || null,
         category_id: document.getElementById('markerCategory').value || null,
         description: document.getElementById('markerDescription').value.trim() || null,
-        address: document.getElementById('markerAddress').value.trim() || null,
+        address: address,
         image_url: null
     };
 
@@ -409,7 +439,7 @@ function renderMarkers(objects) {
             [obj.latitude, obj.longitude],
             {
                 id: obj.id,
-                balloonContentBody: '<b>' + obj.name + '</b><br>' + (obj.address || '')
+                balloonContentBody: '<b>' + escapeHtml(obj.name || 'Объект') + '</b><br>' + escapeHtml(getDisplayAddress(obj))
             },
             {
                 preset: 'islands#dotIcon',
@@ -474,28 +504,32 @@ function populateSelect(id, values, emptyText) {
 }
 
 function showObjectCard(obj) {
-    document.getElementById('cardName').textContent = obj.name;
+    document.getElementById('cardName').textContent = getTextValue(obj.name, 'Без названия');
 
-    // Отображаем адрес вместо координат, если адрес есть
-    var addressText = obj.address || (obj.latitude + ', ' + obj.longitude);
-    document.getElementById('cardAddress').textContent = addressText;
+    document.getElementById('cardAddress').textContent = getDisplayAddress(obj);
 
-    document.getElementById('cardCategory').textContent = obj.category || '-';
-    document.getElementById('cardOrganization').textContent = obj.organization || '-';
-    document.getElementById('cardCoords').textContent = obj.latitude + ', ' + obj.longitude;
-    document.getElementById('cardDescription').textContent = obj.description || '-';
+    document.getElementById('cardCategory').textContent = getTextValue(obj.category);
+    document.getElementById('cardOrganization').textContent = getTextValue(obj.organization);
+    document.getElementById('cardDescription').textContent = getTextValue(obj.description);
 
     // Отображение изображения
     var imageContainer = document.getElementById('cardImageContainer');
     var cardImage = document.getElementById('cardImage');
-    if (obj.image_url) {
+    if (obj.image_url && imageContainer && cardImage) {
         cardImage.src = obj.image_url;
-        imageContainer.style.display = 'block';
+        imageContainer.classList.remove('is-empty');
+        imageContainer.setAttribute('aria-hidden', 'false');
     } else {
-        imageContainer.style.display = 'none';
+        if (cardImage) cardImage.removeAttribute('src');
+        if (imageContainer) {
+            imageContainer.classList.add('is-empty');
+            imageContainer.setAttribute('aria-hidden', 'false');
+        }
     }
 
-    document.getElementById('objectCard').style.display = 'block';
+    var objectCard = document.getElementById('objectCard');
+    objectCard.classList.add('is-open');
+    objectCard.setAttribute('aria-hidden', 'false');
 }
 
 function applyFilters() {
@@ -533,6 +567,38 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
+function getTextValue(value, fallback) {
+    var text = value == null ? '' : String(value).trim();
+    return text || fallback || 'Не указано';
+}
+
+function getDisplayAddress(obj) {
+    var address = obj && obj.address ? String(obj.address).trim() : '';
+    if (address) return address;
+
+    var lat = Number(obj && obj.latitude);
+    var lon = Number(obj && obj.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return lat.toFixed(6) + ', ' + lon.toFixed(6);
+    }
+
+    return 'Адрес не указан';
+}
+
+function setImagePreview(src) {
+    var preview = document.getElementById('imagePreview');
+    var previewImg = document.getElementById('previewImg');
+    if (!preview || !previewImg) return;
+
+    if (src) {
+        previewImg.src = src;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+        previewImg.removeAttribute('src');
+    }
+}
+
 function showLoading(show) {
     document.getElementById('loading').style.display = show ? 'block' : 'none';
 }
@@ -541,7 +607,9 @@ document.getElementById('searchBtn').addEventListener('click', applyFilters);
 document.getElementById('applyFilters').addEventListener('click', applyFilters);
 document.getElementById('clearFilters').addEventListener('click', clearFilters);
 document.getElementById('closeCard').addEventListener('click', function () {
-    document.getElementById('objectCard').style.display = 'none';
+    var objectCard = document.getElementById('objectCard');
+    objectCard.classList.remove('is-open');
+    objectCard.setAttribute('aria-hidden', 'true');
 });
 document.getElementById('markerForm').addEventListener('submit', submitMarkerForm);
 document.getElementById('closeMarkerModal').addEventListener('click', closeMarkerModal);
@@ -550,27 +618,29 @@ document.getElementById('cancelMarkerModal').addEventListener('click', closeMark
 // Обработчик превью изображения
 document.getElementById('markerImage').addEventListener('change', function (event) {
     var file = event.target.files[0];
-    var preview = document.getElementById('imagePreview');
-    var previewImg = document.getElementById('previewImg');
 
     if (file) {
+        if (!file.type || !file.type.startsWith('image/')) {
+            alert('Выберите файл изображения.');
+            event.target.value = '';
+            setImagePreview(null);
+            return;
+        }
+
         var reader = new FileReader();
         reader.onload = function (e) {
-            previewImg.src = e.target.result;
-            preview.style.display = 'block';
+            setImagePreview(e.target.result);
         };
         reader.readAsDataURL(file);
     } else {
-        preview.style.display = 'none';
-        previewImg.src = '';
+        setImagePreview(null);
     }
 });
 
 // Обработчик удаления изображения
 document.getElementById('removeImage').addEventListener('click', function () {
     document.getElementById('markerImage').value = '';
-    document.getElementById('imagePreview').style.display = 'none';
-    document.getElementById('previewImg').src = '';
+    setImagePreview(null);
 });
 
 document.addEventListener('DOMContentLoaded', initMap);

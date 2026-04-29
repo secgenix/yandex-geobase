@@ -7,6 +7,8 @@
 body {
     font-family: Arial, sans-serif;
     background: #f5f5f5;
+    color: #1f2933;
+    line-height: 1.5;
 }
 
 .container {
@@ -14,11 +16,11 @@ body {
     grid-template-areas:
         "header header"
         "filters main"
-        "filters list"
-        "card card";
+        "filters list";
     grid-template-columns: 250px 1fr;
     grid-template-rows: auto 1fr auto;
     height: 100vh;
+    overflow: hidden;
 }
 
 .header {
@@ -56,11 +58,37 @@ body {
     cursor: pointer;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(255, 107, 0, 0.28);
+    outline-offset: 2px;
+}
+
 .filters {
     grid-area: filters;
     background: #fff;
     padding: 20px;
     border-bottom: 1px solid #ddd;
+    overflow-y: auto;
 }
 
 .filters h3 {
@@ -77,13 +105,7 @@ body {
     font-weight: bold;
 }
 
-.filter-group select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
+.filter-group select,
 .filter-group input,
 .filter-group textarea {
     width: 100%;
@@ -93,9 +115,25 @@ body {
     font-family: inherit;
 }
 
+.filter-group input:focus,
+.filter-group select:focus,
+.filter-group textarea:focus,
+.search-box input:focus {
+    border-color: #ff6b00;
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.14);
+    outline: none;
+}
+
 .filter-group textarea {
     min-height: 90px;
     resize: vertical;
+}
+
+.filter-group small {
+    display: block;
+    margin-top: 6px;
+    color: #65717f;
+    line-height: 1.4;
 }
 
 .filters button {
@@ -116,11 +154,14 @@ body {
 .main {
     grid-area: main;
     position: relative;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .map {
     width: 100%;
-    height: 500px;
+    height: 100%;
+    min-height: 420px;
 }
 
 .loading,
@@ -133,6 +174,7 @@ body {
     padding: 20px 40px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 20;
 }
 
 .objects-list {
@@ -163,60 +205,142 @@ body {
 }
 
 .object-card {
-    grid-area: card;
     background: #fff;
-    padding: 20px;
-    border-top: 1px solid #ddd;
-    display: none;
-    position: relative;
+    border: 1px solid rgba(31, 41, 51, 0.12);
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100% - 32px);
+    overflow: hidden;
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: min(380px, calc(100% - 32px));
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(24px) scale(0.98);
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+    visibility: hidden;
+}
+
+.object-card.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    visibility: visible;
 }
 
 .object-card button#closeCard {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
+    top: 12px;
+    right: 12px;
+    background: rgba(17, 24, 39, 0.78);
     border: none;
+    border-radius: 999px;
+    color: #fff;
     font-size: 24px;
+    line-height: 1;
+    width: 36px;
+    height: 36px;
     cursor: pointer;
+    z-index: 2;
+}
+
+.object-card button#closeCard:hover {
+    background: #111827;
+}
+
+.object-card__media {
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    display: block;
+    overflow: hidden;
+}
+
+.object-card__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.object-card__media.is-empty img {
+    display: none;
+}
+
+.object-card__placeholder {
+    align-items: center;
+    color: #6b7280;
+    display: none;
+    font-size: 14px;
+    height: 100%;
+    justify-content: center;
+    padding: 18px;
+    text-align: center;
+}
+
+.object-card__media.is-empty .object-card__placeholder {
+    display: flex;
+}
+
+.object-card__content {
+    overflow-y: auto;
+    padding: 18px 20px 20px;
 }
 
 .object-card h3 {
-    margin-bottom: 15px;
+    color: #111827;
+    font-size: 22px;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    padding-right: 34px;
 }
 
-.object-card p {
-    margin-bottom: 10px;
+.object-card__details {
+    display: grid;
+    gap: 14px;
 }
 
-/* внешний вид меню */
+.object-card__details div {
+    border-top: 1px solid #edf0f3;
+    padding-top: 12px;
+}
+
+.object-card__details dt {
+    color: #65717f;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.object-card__details dd {
+    color: #1f2933;
+    font-size: 15px;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 .context-menu {
-    /* настройки шрифта */
     font-family: sans-serif;
-    /* устанавливаем абсолютное позиционирование */
     position: fixed;
-    /* скрываем по умолчанию (показываем через JS) */
     display: none;
-    /* цвет фона и настройки рамки вокруг меню */
     background-color: #fff;
     border: 1px solid #333;
     padding: 5px;
     z-index: 10000;
-
-    /* Добавим тени */
-    -moz-box-shadow: 5px 2px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 5px 2px 10px rgba(0, 0, 0, 0.5);
     box-shadow: 5px 2px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* общий стиль для списка */
 .context-menu ul {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-/* стиль отдельных элементов */
 .context-menu ul li {
     margin: 0;
     padding: 0;
@@ -224,7 +348,6 @@ body {
     display: block;
 }
 
-/* стиль ссылок в меню */
 .context-menu ul li a {
     color: #333;
     text-decoration: none;
@@ -233,7 +356,6 @@ body {
     padding: 5px;
 }
 
-/* меняем фон в пункте меню при наведении мыши */
 .context-menu ul li a:hover {
     background-color: #eee;
 }
@@ -250,10 +372,11 @@ body {
 
 .marker-modal__dialog {
     width: min(460px, 100%);
+    max-height: min(720px, calc(100vh - 40px));
     background: #fff;
-    border-radius: 8px;
+    border-radius: 16px;
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
+    overflow: auto;
 }
 
 .marker-modal__header {
@@ -275,6 +398,40 @@ body {
     padding: 20px;
 }
 
+.image-preview {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-top: 10px;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.image-preview img {
+    border-radius: 10px;
+    display: block;
+    height: auto;
+    max-height: 260px;
+    object-fit: contain;
+    width: 100%;
+}
+
+.image-preview button {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #374151;
+    cursor: pointer;
+    margin-top: 10px;
+    padding: 8px 12px;
+}
+
+.image-preview button:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
 .marker-modal__actions {
     display: flex;
     gap: 10px;
@@ -291,10 +448,9 @@ body {
         grid-template-areas:
             "header"
             "filters"
-            "main"
-            "card";
+            "main";
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto auto 1fr;
     }
 
     .header,
@@ -308,7 +464,28 @@ body {
     }
 
     .filters {
-        max-height: 42vh;
+        max-height: 38vh;
         overflow-y: auto;
+    }
+
+    .map {
+        min-height: 360px;
+    }
+
+    .object-card {
+        border-radius: 18px 18px 0 0;
+        bottom: 0;
+        max-height: min(72vh, calc(100% - 16px));
+        right: 0;
+        width: 100%;
+        transform: translateY(100%);
+    }
+
+    .object-card.is-open {
+        transform: translateY(0);
+    }
+
+    .object-card__media {
+        aspect-ratio: 21 / 9;
     }
 }

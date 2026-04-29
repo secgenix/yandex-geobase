@@ -98,6 +98,34 @@
             </div>
             <div id="loading" class="loading" style="display: none;">Загрузка...</div>
             <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
+            <aside class="object-card" id="objectCard" aria-hidden="true">
+                <button id="closeCard" type="button" aria-label="Закрыть карточку">&times;</button>
+                <div class="object-card__media" id="cardImageContainer" aria-hidden="true">
+                    <img id="cardImage" src="" alt="Изображение объекта">
+                    <div class="object-card__placeholder" id="cardImagePlaceholder">Изображение не добавлено</div>
+                </div>
+                <div class="object-card__content">
+                    <h3 id="cardName"></h3>
+                    <dl class="object-card__details">
+                        <div>
+                            <dt>Адрес</dt>
+                            <dd id="cardAddress"></dd>
+                        </div>
+                        <div>
+                            <dt>Категория</dt>
+                            <dd id="cardCategory"></dd>
+                        </div>
+                        <div>
+                            <dt>Организация</dt>
+                            <dd id="cardOrganization"></dd>
+                        </div>
+                        <div>
+                            <dt>Описание</dt>
+                            <dd id="cardDescription"></dd>
+                        </div>
+                    </dl>
+                </div>
+            </aside>
         </main>
 
         <div id="markerModal" class="marker-modal" style="display: none;">
@@ -133,8 +161,8 @@
                         <input type="file" id="markerImage" name="image" accept="image/*"
                             placeholder="Выберите изображение">
                         <div id="imagePreview" class="image-preview" style="display: none;">
-                            <img id="previewImg" src="" alt="Превью" style="max-width: 200px; max-height: 200px;">
-                            <button type="button" id="removeImage" style="margin-top: 5px;">Удалить</button>
+                            <img id="previewImg" src="" alt="Превью изображения">
+                            <button type="button" id="removeImage">Удалить</button>
                         </div>
                     </div>
                     <div class="filter-group">
@@ -150,22 +178,6 @@
                 </form>
             </div>
         </div>
-
-
-
-        <aside class="object-card" id="objectCard" style="display: none;">
-            <button id="closeCard">&times;</button>
-            <h3 id="cardName"></h3>
-            <div id="cardImageContainer" style="display: none;">
-                <img id="cardImage" src="" alt="Изображение"
-                    style="max-width: 100%; max-height: 200px; border-radius: 4px; margin: 10px 0;">
-            </div>
-            <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
-            <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
-            <p><strong>Организация:</strong> <span id="cardOrganization"></span></p>
-            <p><strong>Координаты:</strong> <span id="cardCoords"></span></p>
-            <p><strong>Описание:</strong> <span id="cardDescription"></span></p>
-        </aside>
     </div>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU"></script>

@@ -225,6 +225,7 @@ async def get_objects(
                 "name": item.name,
                 "address": item.address,
                 "description": item.description,
+                "image_url": item.image_url,
                 "category_id": item.category_id,
                 "category": item.category.name if item.category else None,
                 "organization_id": item.labels[0].id if item.labels else None,
