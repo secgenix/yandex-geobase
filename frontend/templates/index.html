@@ -68,21 +68,23 @@
         </header>
 
         <aside class="filters">
-            <h3>Фильтры</h3>
-            <div class="filter-group">
-                <label for="categoryFilter">Категория</label>
-                <select id="categoryFilter">
-                    <option value="">Все</option>
-                </select>
+            <div class="filters__controls">
+                <h3>Фильтры</h3>
+                <div class="filter-group">
+                    <label for="categoryFilter">Категория</label>
+                    <select id="categoryFilter">
+                        <option value="">Все</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="organizationFilter">Организация</label>
+                    <select id="organizationFilter">
+                        <option value="">Все</option>
+                    </select>
+                </div>
+                <button id="applyFilters">Применить</button>
+                <button id="clearFilters">Очистить</button>
             </div>
-            <div class="filter-group">
-                <label for="organizationFilter">Организация</label>
-                <select id="organizationFilter">
-                    <option value="">Все</option>
-                </select>
-            </div>
-            <button id="applyFilters">Применить</button>
-            <button id="clearFilters">Очистить</button>
             <aside class="objects-list">
                 <h3>Список объектов</h3>
                 <ul id="objectsList"></ul>
@@ -174,6 +176,50 @@
                     <div class="marker-modal__actions">
                         <button type="button" id="cancelMarkerModal">Отмена</button>
                         <button type="submit">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="labelEditModal" class="marker-modal" style="display: none;" aria-hidden="true" role="dialog"
+            aria-modal="true" aria-labelledby="labelEditTitle">
+            <div class="marker-modal__dialog">
+                <div class="marker-modal__header">
+                    <h3 id="labelEditTitle">Редактировать метку</h3>
+                    <button type="button" id="closeLabelEditModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="labelEditForm" class="marker-form" novalidate>
+                    <input type="hidden" id="labelEditId" name="id">
+                    <div class="filter-group">
+                        <label for="labelEditName">Название</label>
+                        <input type="text" id="labelEditName" name="name" required maxlength="255"
+                            aria-describedby="labelEditNameError">
+                        <small id="labelEditNameError" class="form-error" role="alert"></small>
+                    </div>
+                    <div class="filter-group">
+                        <label for="labelEditDescription">Описание</label>
+                        <textarea id="labelEditDescription" name="description"></textarea>
+                    </div>
+                    <div class="filter-group">
+                        <label for="labelEditAddress">Адрес</label>
+                        <input type="text" id="labelEditAddress" name="address" maxlength="500">
+                    </div>
+                    <div class="filter-group">
+                        <label for="labelEditOrganization">Организация</label>
+                        <select id="labelEditOrganization" name="organization_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="labelEditCategory">Категория</label>
+                        <select id="labelEditCategory" name="category_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div id="labelEditStatus" class="form-status" role="status" aria-live="polite"></div>
+                    <div class="marker-modal__actions">
+                        <button type="button" id="cancelLabelEditModal">Отмена</button>
+                        <button type="submit" id="saveLabelEditModal">Сохранить</button>
                     </div>
                 </form>
             </div>

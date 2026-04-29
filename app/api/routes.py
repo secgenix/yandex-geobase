@@ -194,3 +194,74 @@ async def create_map_marker(
         "created_by": marker_obj.created_by,
         "created_at": marker_obj.created_at,
     }
+
+
+@router.put("/map-markers/{marker_id}")
+async def update_map_marker(
+    marker_id: int,
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.has_role("admin") and not current_user.has_role("moderator"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет прав для редактирования меток. Только администраторы и модераторы могут редактировать метки.",
+        )
+
+    marker_obj = db.query(GeoObject).filter(GeoObject.id == marker_id).first()
+    if not marker_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Метка не найдена")
+
+    if "name" in payload:
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Название метки обязательно")
+        marker_obj.name = name
+
+    if "description" in payload:
+        marker_obj.description = payload.get("description") or None
+    if "address" in payload:
+        marker_obj.address = payload.get("address") or None
+    if "image_url" in payload:
+        marker_obj.image_url = payload.get("image_url") or None
+
+    if "category_id" in payload:
+        category_id = payload.get("category_id") or None
+        if category_id:
+            category = db.query(CategoryReference).filter(CategoryReference.id == int(category_id)).first()
+            if not category:
+                raise HTTPException(status_code=404, detail="Категория не найдена")
+            marker_obj.category_id = category.id
+        else:
+            marker_obj.category_id = None
+
+    if "organization_id" in payload:
+        organization_id = payload.get("organization_id") or None
+        marker_obj.labels.clear()
+        if organization_id:
+            organization = db.query(Label).filter(Label.id == int(organization_id)).first()
+            if not organization:
+                raise HTTPException(status_code=404, detail="Организация не найдена")
+            marker_obj.labels.append(organization)
+
+    marker_obj.updated_by = current_user.id
+    db.commit()
+    db.refresh(marker_obj)
+
+    organization = marker_obj.labels[0] if marker_obj.labels else None
+    return {
+        "id": marker_obj.id,
+        "name": marker_obj.name,
+        "description": marker_obj.description,
+        "address": marker_obj.address,
+        "image_url": marker_obj.image_url,
+        "category_id": marker_obj.category_id,
+        "category": marker_obj.category.name if marker_obj.category else None,
+        "organization_id": organization.id if organization else None,
+        "organization": organization.name if organization else None,
+        "latitude": marker_obj.latitude,
+        "longitude": marker_obj.longitude,
+        "created_by": marker_obj.created_by,
+        "created_at": marker_obj.created_at,
+    }

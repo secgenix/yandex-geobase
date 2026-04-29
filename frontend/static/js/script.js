@@ -74,6 +74,8 @@ let mapMarkerCollection = null;
 let mapMarkerPlacemarks = [];
 let mapMarkersData = [];
 let filterOptions = { categories: [], organizations: [] };
+let contextMenuMarker = null;
+let labelEditLastFocus = null;
 
 function initMap() {
     ymaps.ready(function () {
@@ -115,7 +117,9 @@ function setupMapContextMenu() {
         var oe = domEvent && domEvent.originalEvent ? domEvent.originalEvent : null;
         var clientX = oe ? oe.clientX : 0;
         var clientY = oe ? oe.clientY : 0;
+        contextMenuMarker = findMarkerAtClientPoint(clientX, clientY, coords);
 
+        renderMapContextMenu();
         showMapContextMenu(clientX, clientY);
 
         if (domEvent && typeof domEvent.preventDefault === 'function') domEvent.preventDefault();
@@ -138,6 +142,10 @@ function setupMapContextMenu() {
                     return;
                 }
                 if (lastContextCoords) openMarkerModal(lastContextCoords);
+            }
+
+            if (action === 'edit-label') {
+                openLabelEditModal(contextMenuMarker);
             }
 
             hideMapContextMenu();
@@ -187,9 +195,63 @@ function showMapContextMenu(clientX, clientY) {
     mapContextMenuEl.style.top = y + 'px';
 }
 
+function renderMapContextMenu() {
+    if (!mapContextMenuEl) return;
+
+    var actions = ['<li><a href="#" data-action="add-marker" role="menuitem">Установить метку</a></li>'];
+    if (isValidMarkerContext(contextMenuMarker)) {
+        actions.push('<li><a href="#" data-action="edit-label" role="menuitem">Редактировать метку</a></li>');
+    }
+
+    mapContextMenuEl.innerHTML = '<ul role="menu">' + actions.join('') + '</ul>';
+
+    var addMarkerLink = mapContextMenuEl.querySelector('a[data-action="add-marker"]');
+    if (addMarkerLink) {
+        addMarkerLink.title = canUserPlaceMarkers() ? 'Установить метку' : 'У вас нет прав для установки меток';
+    }
+}
+
+function isValidMarkerContext(marker) {
+    return Boolean(marker && Number.isFinite(Number(marker.id)) && Number.isFinite(Number(marker.latitude)) && Number.isFinite(Number(marker.longitude)));
+}
+
+function findMarkerAtClientPoint(clientX, clientY, coords) {
+    var candidates = objectsData.concat(mapMarkersData);
+    var best = null;
+    var bestDistance = Infinity;
+
+    candidates.forEach(function (obj) {
+        if (!obj || !Number.isFinite(Number(obj.id)) || !Number.isFinite(Number(obj.latitude)) || !Number.isFinite(Number(obj.longitude))) return;
+
+        var point = null;
+        if (map && typeof map.options !== 'undefined' && typeof map.geoObjects !== 'undefined') {
+            try {
+                point = map.converter.globalToPage(map.options.get('projection').toGlobalPixels([Number(obj.latitude), Number(obj.longitude)], map.getZoom()));
+            } catch (e) {
+                point = null;
+            }
+        }
+
+        var distance = Infinity;
+        if (point) {
+            distance = Math.hypot(point[0] - clientX, point[1] - clientY);
+        } else if (coords) {
+            distance = Math.hypot(Number(obj.latitude) - coords[0], Number(obj.longitude) - coords[1]);
+        }
+
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            best = obj;
+        }
+    });
+
+    return best && bestDistance <= 28 ? best : null;
+}
+
 function hideMapContextMenu() {
     if (!mapContextMenuEl) return;
     mapContextMenuEl.style.display = 'none';
+    contextMenuMarker = null;
 }
 
 function renderMapMarker(marker) {
@@ -212,6 +274,17 @@ function renderMapMarker(marker) {
             preset: 'islands#redIcon'
         }
     );
+
+    placemark.events.add('contextmenu', function (e) {
+        var domEvent = e.get('domEvent');
+        var oe = domEvent && domEvent.originalEvent ? domEvent.originalEvent : null;
+        contextMenuMarker = marker;
+        lastContextCoords = coords;
+        renderMapContextMenu();
+        showMapContextMenu(oe ? oe.clientX : 0, oe ? oe.clientY : 0);
+        if (domEvent && typeof domEvent.preventDefault === 'function') domEvent.preventDefault();
+        if (domEvent && typeof domEvent.stopPropagation === 'function') domEvent.stopPropagation();
+    });
 
     mapMarkerCollection.add(placemark);
     mapMarkerPlacemarks.push(placemark);
@@ -293,6 +366,7 @@ function createMapMarker(coords) {
             return r.json();
         })
         .then(function (marker) {
+            closeMarkerModal();
             mapMarkersData = [marker].concat(mapMarkersData.filter(function (item) {
                 return Number(item.id) !== Number(marker.id);
             }));
@@ -343,12 +417,26 @@ function openMarkerModal(coords) {
     }
 
     modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
     document.getElementById('markerName').focus();
 }
 
 function closeMarkerModal() {
     var modal = document.getElementById('markerModal');
-    if (modal) modal.style.display = 'none';
+    var form = document.getElementById('markerForm');
+
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    if (form) {
+        form.reset();
+        delete form.dataset.latitude;
+        delete form.dataset.longitude;
+    }
+
+    setImagePreview(null);
 }
 
 function submitMarkerForm(event) {
@@ -451,6 +539,17 @@ function renderMarkers(objects) {
             showObjectCard(obj);
         });
 
+        placemark.events.add('contextmenu', function (e) {
+            var domEvent = e.get('domEvent');
+            var oe = domEvent && domEvent.originalEvent ? domEvent.originalEvent : null;
+            contextMenuMarker = obj;
+            lastContextCoords = [obj.latitude, obj.longitude];
+            renderMapContextMenu();
+            showMapContextMenu(oe ? oe.clientX : 0, oe ? oe.clientY : 0);
+            if (domEvent && typeof domEvent.preventDefault === 'function') domEvent.preventDefault();
+            if (domEvent && typeof domEvent.stopPropagation === 'function') domEvent.stopPropagation();
+        });
+
         map.geoObjects.add(placemark);
         markers.push(placemark);
     });
@@ -501,6 +600,149 @@ function populateSelect(id, values, emptyText) {
         option.textContent = typeof val === 'object' ? val.name : val;
         select.appendChild(option);
     });
+}
+
+function openLabelEditModal(marker) {
+    if (!isValidMarkerContext(marker)) {
+        alert('Не удалось определить метку для редактирования.');
+        return;
+    }
+
+    var modal = document.getElementById('labelEditModal');
+    var form = document.getElementById('labelEditForm');
+    if (!modal || !form) return;
+
+    labelEditLastFocus = document.activeElement;
+    populateSelect('labelEditOrganization', filterOptions.organizations, 'Не выбрана');
+    populateSelect('labelEditCategory', filterOptions.categories, 'Не выбрана');
+    document.getElementById('labelEditId').value = marker.id;
+    document.getElementById('labelEditName').value = marker.name || '';
+    document.getElementById('labelEditDescription').value = marker.description || '';
+    document.getElementById('labelEditAddress').value = marker.address || '';
+    document.getElementById('labelEditOrganization').value = marker.organization_id || '';
+    document.getElementById('labelEditCategory').value = marker.category_id || '';
+    setLabelEditStatus('');
+    validateLabelEditForm();
+
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('labelEditName').focus();
+}
+
+function closeLabelEditModal() {
+    var modal = document.getElementById('labelEditModal');
+    var form = document.getElementById('labelEditForm');
+
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    if (form) form.reset();
+    setLabelEditStatus('');
+    contextMenuMarker = null;
+
+    if (labelEditLastFocus && typeof labelEditLastFocus.focus === 'function') {
+        labelEditLastFocus.focus();
+    }
+    labelEditLastFocus = null;
+}
+
+function validateLabelEditForm() {
+    var nameInput = document.getElementById('labelEditName');
+    var saveButton = document.getElementById('saveLabelEditModal');
+    var nameError = document.getElementById('labelEditNameError');
+    var isValid = true;
+
+    var name = nameInput.value.trim();
+
+    nameError.textContent = '';
+    nameInput.removeAttribute('aria-invalid');
+
+    if (!name) {
+        nameError.textContent = 'Укажите название метки.';
+        nameInput.setAttribute('aria-invalid', 'true');
+        isValid = false;
+    }
+
+    if (saveButton) saveButton.disabled = !isValid;
+    return isValid;
+}
+
+function setLabelEditStatus(message, isError) {
+    var statusEl = document.getElementById('labelEditStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.toggle('is-error', Boolean(isError));
+}
+
+function submitLabelEditForm(event) {
+    event.preventDefault();
+    if (!validateLabelEditForm()) return;
+
+    var markerId = Number(document.getElementById('labelEditId').value);
+    if (!Number.isFinite(markerId)) {
+        setLabelEditStatus('Не удалось определить метку для сохранения.', true);
+        return;
+    }
+
+    var token = localStorage.getItem('access_token');
+    if (!token) {
+        setLabelEditStatus('Для редактирования метки необходимо войти в систему.', true);
+        return;
+    }
+
+    var saveButton = document.getElementById('saveLabelEditModal');
+    var payload = {
+        name: document.getElementById('labelEditName').value.trim(),
+        description: document.getElementById('labelEditDescription').value.trim() || null,
+        address: document.getElementById('labelEditAddress').value.trim() || null,
+        organization_id: document.getElementById('labelEditOrganization').value || null,
+        category_id: document.getElementById('labelEditCategory').value || null
+    };
+
+    if (saveButton) saveButton.disabled = true;
+    setLabelEditStatus('Сохранение...');
+
+    fetch('/api/v1/map-markers/' + encodeURIComponent(markerId), {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(function (r) {
+            if (!r.ok) {
+                return r.json().catch(function () { return null; }).then(function (body) {
+                    throw new Error(body && body.detail ? body.detail : 'HTTP ' + r.status);
+                });
+            }
+            return r.json();
+        })
+        .then(function (marker) {
+            applyMarkerUpdate(marker);
+            closeLabelEditModal();
+        })
+        .catch(function (e) {
+            setLabelEditStatus('Не удалось сохранить метку: ' + e.message, true);
+            if (saveButton) saveButton.disabled = false;
+        });
+}
+
+function applyMarkerUpdate(marker) {
+    if (!marker || !Number.isFinite(Number(marker.id))) return;
+
+    upsertMarkerData(objectsData, marker);
+    upsertMarkerData(mapMarkersData, marker);
+
+    renderObjectsList(objectsData);
+    renderMarkers(objectsData);
+    renderFilteredMapMarkers();
+}
+
+function upsertMarkerData(items, marker) {
+    var index = items.findIndex(function (item) { return Number(item.id) === Number(marker.id); });
+    if (index >= 0) items[index] = Object.assign({}, items[index], marker);
 }
 
 function showObjectCard(obj) {
@@ -614,6 +856,32 @@ document.getElementById('closeCard').addEventListener('click', function () {
 document.getElementById('markerForm').addEventListener('submit', submitMarkerForm);
 document.getElementById('closeMarkerModal').addEventListener('click', closeMarkerModal);
 document.getElementById('cancelMarkerModal').addEventListener('click', closeMarkerModal);
+document.getElementById('labelEditForm').addEventListener('submit', submitLabelEditForm);
+document.getElementById('labelEditName').addEventListener('input', validateLabelEditForm);
+document.getElementById('closeLabelEditModal').addEventListener('click', closeLabelEditModal);
+document.getElementById('cancelLabelEditModal').addEventListener('click', closeLabelEditModal);
+
+document.getElementById('labelEditModal').addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+        closeLabelEditModal();
+        return;
+    }
+
+    if (event.key !== 'Tab') return;
+    var focusable = Array.prototype.slice.call(event.currentTarget.querySelectorAll('button, input, textarea, select, a[href]'))
+        .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+    if (focusable.length === 0) return;
+
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+});
 
 // Обработчик превью изображения
 document.getElementById('markerImage').addEventListener('change', function (event) {

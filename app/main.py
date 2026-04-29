@@ -239,7 +239,16 @@ async def get_filters(db=Depends(get_db)):
     organizations = db.query(Label).order_by(Label.name).all()
     return {
         "categories": [{"id": item.id, "name": item.name} for item in categories],
-        "organizations": [{"id": item.id, "name": item.name} for item in organizations],
+        "organizations": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "description": item.description,
+                "color": item.color,
+                "icon": item.icon,
+            }
+            for item in organizations
+        ],
     }
 
 

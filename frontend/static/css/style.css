@@ -4,6 +4,12 @@
     box-sizing: border-box;
 }
 
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     font-family: Arial, sans-serif;
     background: #f5f5f5;
@@ -15,11 +21,11 @@ body {
     display: grid;
     grid-template-areas:
         "header header"
-        "filters main"
-        "filters list";
+        "filters main";
     grid-template-columns: 250px 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto minmax(0, 1fr);
     height: 100vh;
+    max-height: 100vh;
     overflow: hidden;
 }
 
@@ -86,9 +92,12 @@ textarea:focus-visible {
 .filters {
     grid-area: filters;
     background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     padding: 20px;
     border-bottom: 1px solid #ddd;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .filters h3 {
@@ -136,6 +145,11 @@ textarea:focus-visible {
     line-height: 1.4;
 }
 
+.filter-group .form-error {
+    color: #b91c1c;
+    min-height: 18px;
+}
+
 .filters button {
     width: 100%;
     padding: 10px;
@@ -178,20 +192,29 @@ textarea:focus-visible {
 }
 
 .objects-list {
-    grid-area: list;
     background: #fff;
-    padding: 20px;
-    border-bottom: 1px solid #ddd;
-    max-height: 300px;
-    overflow-y: auto;
+    border-top: 1px solid #ddd;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    margin: 20px -20px -20px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 20px 20px 0;
 }
 
 .objects-list h3 {
+    flex: 0 0 auto;
     margin-bottom: 15px;
 }
 
 .objects-list ul {
+    flex: 1 1 auto;
     list-style: none;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 20px;
+    scrollbar-gutter: stable;
 }
 
 .objects-list li {
@@ -438,6 +461,17 @@ textarea:focus-visible {
     justify-content: flex-end;
 }
 
+.form-status {
+    color: #65717f;
+    font-size: 14px;
+    min-height: 20px;
+    margin-bottom: 14px;
+}
+
+.form-status.is-error {
+    color: #b91c1c;
+}
+
 .marker-modal__actions button {
     width: auto;
     min-width: 110px;
@@ -450,7 +484,7 @@ textarea:focus-visible {
             "filters"
             "main";
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto minmax(220px, 38vh) minmax(0, 1fr);
     }
 
     .header,
@@ -464,8 +498,12 @@ textarea:focus-visible {
     }
 
     .filters {
-        max-height: 38vh;
-        overflow-y: auto;
+        max-height: none;
+        overflow: hidden;
+    }
+
+    .objects-list {
+        margin-bottom: -20px;
     }
 
     .map {
