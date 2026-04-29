@@ -165,6 +165,7 @@ CREATE TABLE geo_objects (
     category_id BIGINT REFERENCES categories_reference(id),
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
+    image_url VARCHAR(500),  -- URL изображения метки
     created_by BIGINT NOT NULL REFERENCES users(id),
     updated_by BIGINT REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),

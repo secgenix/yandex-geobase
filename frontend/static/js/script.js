@@ -12,10 +12,12 @@ function updateAuthHeader() {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const isAdmin = user.roles && user.roles.includes('admin');
+            const isModerator = user.roles && user.roles.includes('moderator');
 
             headerNav.innerHTML = `
                 <span style="color: white; font-size: 14px;">👤 ${user.username || 'Пользователь'}</span>
                 ${isAdmin ? '<a href="admin.html">🔐 Админ</a>' : ''}
+                ${isModerator ? '<span style="color: #ffd700; font-size: 12px;">⭐ Модератор</span>' : ''}
                 <a href="profile.html">Профиль</a>
                 <button onclick="logout()" style="background: #e74c3c;">Выход</button>
             `;
@@ -46,7 +48,21 @@ function logout() {
     }
 }
 
-const DEFAULT_CENTER = [55.7558, 37.6173];
+// Проверка, имеет ли пользователь право устанавливать метки (admin или moderator)
+function canUserPlaceMarkers() {
+    const token = localStorage.getItem('access_token');
+    if (!token) return false;
+
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const roles = user.roles || [];
+        return roles.includes('admin') || roles.includes('moderator');
+    } catch (e) {
+        return false;
+    }
+}
+
+const DEFAULT_CENTER = [55.04, 82.92]; // Novosibirsk
 const DEFAULT_ZOOM = 10;
 
 let map = null;
@@ -82,6 +98,12 @@ function setupMapContextMenu() {
     var mapEl = document.getElementById('map');
     if (!mapContextMenuEl || !mapEl || !map) return;
 
+    // Кнопка всегда видна, но при клике проверяем права
+    var addMarkerLink = mapContextMenuEl.querySelector('a[data-action="add-marker"]');
+    if (addMarkerLink) {
+        addMarkerLink.title = canUserPlaceMarkers() ? 'Установить метку' : 'У вас нет прав для установки меток';
+    }
+
     // Используем нативное событие карты, чтобы coords совпадали с курсором
     map.events.add('contextmenu', function (e) {
         var coords = e.get('coords');
@@ -110,6 +132,11 @@ function setupMapContextMenu() {
             var action = target.getAttribute('data-action');
 
             if (action === 'add-marker') {
+                if (!canUserPlaceMarkers()) {
+                    alert('У вас нет прав для установки меток. Только администраторы и модераторы могут устанавливать метки.');
+                    hideMapContextMenu();
+                    return;
+                }
                 if (lastContextCoords) openMarkerModal(lastContextCoords);
             }
 
@@ -285,6 +312,25 @@ function openMarkerModal(coords) {
     form.reset();
     form.dataset.latitude = coords[0];
     form.dataset.longitude = coords[1];
+
+    // Очистка превью изображения
+    var imagePreview = document.getElementById('imagePreview');
+    if (imagePreview) imagePreview.style.display = 'none';
+    document.getElementById('previewImg').src = '';
+
+    // Попытка получить адрес через геокодинг Яндекс.Карт
+    if (ymaps && map) {
+        ymaps.geocode(coords).then(function (res) {
+            var firstGeoObject = res.geoObjects.get(0);
+            if (firstGeoObject) {
+                var address = firstGeoObject.getAddressLine();
+                document.getElementById('markerAddress').value = address || '';
+            }
+        }).catch(function (err) {
+            console.error('Ошибка геокодинга:', err);
+        });
+    }
+
     modal.style.display = 'flex';
     document.getElementById('markerName').focus();
 }
@@ -304,16 +350,26 @@ function submitMarkerForm(event) {
         name: document.getElementById('markerName').value.trim(),
         organization_id: document.getElementById('markerOrganization').value || null,
         category_id: document.getElementById('markerCategory').value || null,
-        description: document.getElementById('markerDescription').value.trim() || null
+        description: document.getElementById('markerDescription').value.trim() || null,
+        address: document.getElementById('markerAddress').value.trim() || null,
+        image_url: null
     };
 
-    if (!payload.name) {
-        alert('Введите название метки');
-        return;
-    }
+    // Обработка загрузки изображения
+    var imageInput = document.getElementById('markerImage');
+    var file = imageInput && imageInput.files[0];
 
-    createMapMarker(payload);
-    closeMarkerModal();
+    if (file) {
+        // Для демонстрации используем base64 (в продакшене нужно загружать на сервер)
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            payload.image_url = e.target.result; // base64 строка
+            createMapMarker(payload);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        createMapMarker(payload);
+    }
 }
 
 function loadObjects(filters) {
@@ -419,11 +475,25 @@ function populateSelect(id, values, emptyText) {
 
 function showObjectCard(obj) {
     document.getElementById('cardName').textContent = obj.name;
-    document.getElementById('cardAddress').textContent = obj.address || '-';
+
+    // Отображаем адрес вместо координат, если адрес есть
+    var addressText = obj.address || (obj.latitude + ', ' + obj.longitude);
+    document.getElementById('cardAddress').textContent = addressText;
+
     document.getElementById('cardCategory').textContent = obj.category || '-';
     document.getElementById('cardOrganization').textContent = obj.organization || '-';
     document.getElementById('cardCoords').textContent = obj.latitude + ', ' + obj.longitude;
     document.getElementById('cardDescription').textContent = obj.description || '-';
+
+    // Отображение изображения
+    var imageContainer = document.getElementById('cardImageContainer');
+    var cardImage = document.getElementById('cardImage');
+    if (obj.image_url) {
+        cardImage.src = obj.image_url;
+        imageContainer.style.display = 'block';
+    } else {
+        imageContainer.style.display = 'none';
+    }
 
     document.getElementById('objectCard').style.display = 'block';
 }
@@ -476,5 +546,31 @@ document.getElementById('closeCard').addEventListener('click', function () {
 document.getElementById('markerForm').addEventListener('submit', submitMarkerForm);
 document.getElementById('closeMarkerModal').addEventListener('click', closeMarkerModal);
 document.getElementById('cancelMarkerModal').addEventListener('click', closeMarkerModal);
+
+// Обработчик превью изображения
+document.getElementById('markerImage').addEventListener('change', function (event) {
+    var file = event.target.files[0];
+    var preview = document.getElementById('imagePreview');
+    var previewImg = document.getElementById('previewImg');
+
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            previewImg.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'none';
+        previewImg.src = '';
+    }
+});
+
+// Обработчик удаления изображения
+document.getElementById('removeImage').addEventListener('click', function () {
+    document.getElementById('markerImage').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('previewImg').src = '';
+});
 
 document.addEventListener('DOMContentLoaded', initMap);

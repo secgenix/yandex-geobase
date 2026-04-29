@@ -109,7 +109,8 @@
                 <form id="markerForm" class="marker-form">
                     <div class="filter-group">
                         <label for="markerName">Название</label>
-                        <input type="text" id="markerName" name="name" required maxlength="255" placeholder="Название метки">
+                        <input type="text" id="markerName" name="name" required maxlength="255"
+                            placeholder="Название метки">
                     </div>
                     <div class="filter-group">
                         <label for="markerOrganization">Организация</label>
@@ -127,6 +128,21 @@
                         <label for="markerDescription">Описание</label>
                         <textarea id="markerDescription" name="description" placeholder="Описание метки"></textarea>
                     </div>
+                    <div class="filter-group">
+                        <label for="markerImage">Изображение</label>
+                        <input type="file" id="markerImage" name="image" accept="image/*"
+                            placeholder="Выберите изображение">
+                        <div id="imagePreview" class="image-preview" style="display: none;">
+                            <img id="previewImg" src="" alt="Превью" style="max-width: 200px; max-height: 200px;">
+                            <button type="button" id="removeImage" style="margin-top: 5px;">Удалить</button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerAddress">Адрес</label>
+                        <input type="text" id="markerAddress" name="address"
+                            placeholder="Адрес (заполнится автоматически при клике на дом)">
+                        <small style="color: #666;">При клике на дом адрес подставится автоматически</small>
+                    </div>
                     <div class="marker-modal__actions">
                         <button type="button" id="cancelMarkerModal">Отмена</button>
                         <button type="submit">Сохранить</button>
@@ -140,6 +156,10 @@
         <aside class="object-card" id="objectCard" style="display: none;">
             <button id="closeCard">&times;</button>
             <h3 id="cardName"></h3>
+            <div id="cardImageContainer" style="display: none;">
+                <img id="cardImage" src="" alt="Изображение"
+                    style="max-width: 100%; max-height: 200px; border-radius: 4px; margin: 10px 0;">
+            </div>
             <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
             <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
             <p><strong>Организация:</strong> <span id="cardOrganization"></span></p>

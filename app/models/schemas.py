@@ -142,8 +142,14 @@ class UserAdminUpdateRequest(UserUpdateRequest):
     def validate_admin_password(cls, v):
         if v is None:
             return v
-        if not re.search(r"[A-Z]", v) or not re.search(r"[a-z]", v) or not re.search(r"[0-9]", v):
-            raise ValueError("Пароль должен содержать заглавные буквы, строчные буквы и цифры")
+        if (
+            not re.search(r"[A-Z]", v)
+            or not re.search(r"[a-z]", v)
+            or not re.search(r"[0-9]", v)
+        ):
+            raise ValueError(
+                "Пароль должен содержать заглавные буквы, строчные буквы и цифры"
+            )
         return v
 
 
@@ -164,8 +170,14 @@ class UserAdminCreateRequest(BaseModel):
     def validate_create_password(cls, v):
         if v is None:
             return v
-        if not re.search(r"[A-Z]", v) or not re.search(r"[a-z]", v) or not re.search(r"[0-9]", v):
-            raise ValueError("Пароль должен содержать заглавные буквы, строчные буквы и цифры")
+        if (
+            not re.search(r"[A-Z]", v)
+            or not re.search(r"[a-z]", v)
+            or not re.search(r"[0-9]", v)
+        ):
+            raise ValueError(
+                "Пароль должен содержать заглавные буквы, строчные буквы и цифры"
+            )
         return v
 
 
@@ -333,21 +345,25 @@ class OrganizationUpdateRequest(LabelUpdateRequest):
 
 class StatusResponse(BaseModel):
     """Информация о статусе (deprecated)"""
+
     pass
 
 
 class StatusCreateRequest(BaseModel):
     """Запрос для создания статуса (deprecated)"""
+
     pass
 
 
 class CityResponse(BaseModel):
     """Информация о городе (deprecated)"""
+
     pass
 
 
 class CityCreateRequest(BaseModel):
     """Запрос для создания города (deprecated)"""
+
     pass
 
 
@@ -365,6 +381,7 @@ class GeoObjectResponse(BaseModel):
     description: Optional[str] = None
     latitude: float
     longitude: float
+    image_url: Optional[str] = None  # URL изображения метки (base64 или URL)
     category_id: Optional[int] = None
     is_verified: bool = False
     created_at: datetime
@@ -378,10 +395,11 @@ class GeoObjectCreateRequest(BaseModel):
     """Запрос для создания нового объекта"""
 
     name: str = Field(..., min_length=1, max_length=255)
-    address: Optional[str] = None
+    address: Optional[str] = None  # Текстовый адрес метки
     description: Optional[str] = None
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    image_url: Optional[str] = None  # URL изображения метки (base64 или URL)
     category_id: Optional[int] = None
     label_ids: List[int] = Field(default_factory=list)
 
