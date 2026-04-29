@@ -8,7 +8,7 @@
 
 -- 1.1. Таблица пользователей
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -30,7 +30,7 @@ CREATE INDEX idx_users_created_at ON users(created_at);
 
 -- 1.2. Таблица ролей
 CREATE TABLE roles (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     is_system BOOLEAN DEFAULT FALSE,  -- системная роль (не может быть удалена)
@@ -43,12 +43,11 @@ CREATE INDEX idx_roles_name ON roles(name);
 
 -- 1.3. Таблица связи пользователей и ролей (Many-to-Many)
 CREATE TABLE user_roles (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id BIGINT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    assigned_by BIGINT REFERENCES users(id),
-    UNIQUE(user_id, role_id)
+    assigned_by INTEGER REFERENCES users(id),
+    PRIMARY KEY (user_id, role_id)
 );
 
 -- Индексы для связей
@@ -57,7 +56,7 @@ CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
 
 -- 1.4. Таблица разрешений (Permissions)
 CREATE TABLE permissions (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     category VARCHAR(50),  -- 'objects', 'users', 'roles', 'reports', 'system'
@@ -70,10 +69,10 @@ CREATE INDEX idx_permissions_category ON permissions(category);
 
 -- 1.5. Таблица связи ролей и разрешений (Many-to-Many)
 CREATE TABLE role_permissions (
-    id BIGSERIAL PRIMARY KEY,
-    role_id BIGINT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    permission_id BIGINT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (role_id, permission_id),
     UNIQUE(role_id, permission_id)
 );
 
@@ -83,8 +82,8 @@ CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_i
 
 -- 1.6. Таблица сессий/токенов
 CREATE TABLE sessions (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash VARCHAR(255) NOT NULL UNIQUE,
     ip_address INET,
     user_agent TEXT,
@@ -100,11 +99,11 @@ CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 
 -- 1.7. Таблица логирования действий администратора
 CREATE TABLE audit_logs (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,  -- 'create', 'update', 'delete', 'assign_role', etc
     resource_type VARCHAR(50),     -- 'user', 'object', 'role', etc
-    resource_id BIGINT,
+    resource_id INTEGER,
     changes JSONB,                  -- перед и после для изменений
     ip_address INET,
     user_agent TEXT,
@@ -125,12 +124,12 @@ CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
 -- 2.1. Справочник категорий
 CREATE TABLE categories_reference (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     icon VARCHAR(255),
     color VARCHAR(7),
-    created_by BIGINT REFERENCES users(id),
+    created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -143,12 +142,12 @@ CREATE INDEX idx_categories_name ON categories_reference(name);
 
 -- 2.2. Таблица метак (Labels/Tags)
 CREATE TABLE labels (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     color VARCHAR(7),
     icon VARCHAR(255),
-    created_by BIGINT NOT NULL REFERENCES users(id),
+    created_by INTEGER NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -158,20 +157,20 @@ CREATE INDEX idx_labels_created_by ON labels(created_by);
 
 -- 2.3. Основная таблица географических объектов
 CREATE TABLE geo_objects (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     address TEXT,
     description TEXT,
-    category_id BIGINT REFERENCES categories_reference(id),
+    category_id INTEGER REFERENCES categories_reference(id),
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
-    image_url VARCHAR(500),  -- URL изображения метки
-    created_by BIGINT NOT NULL REFERENCES users(id),
-    updated_by BIGINT REFERENCES users(id),
+    image_url TEXT,  -- URL или base64 изображения метки
+    created_by INTEGER NOT NULL REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     is_verified BOOLEAN DEFAULT FALSE,
-    verified_by BIGINT REFERENCES users(id)
+    verified_by INTEGER REFERENCES users(id)
 );
 
 -- Индексы для объектов
@@ -188,10 +187,10 @@ CREATE INDEX idx_geo_objects_is_verified ON geo_objects(is_verified);
 
 -- 2.6. Таблица связи объектов и меток (Many-to-Many)
 CREATE TABLE object_labels (
-    id BIGSERIAL PRIMARY KEY,
-    object_id BIGINT NOT NULL REFERENCES geo_objects(id) ON DELETE CASCADE,
-    label_id BIGINT NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+    object_id INTEGER NOT NULL REFERENCES geo_objects(id) ON DELETE CASCADE,
+    label_id INTEGER NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (object_id, label_id),
     UNIQUE(object_id, label_id)
 );
 
@@ -200,9 +199,9 @@ CREATE INDEX idx_object_labels_label_id ON object_labels(label_id);
 
 -- 2.7. Таблица комментариев/истории изменений объектов
 CREATE TABLE object_comments (
-    id BIGSERIAL PRIMARY KEY,
-    object_id BIGINT NOT NULL REFERENCES geo_objects(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id),
+    id SERIAL PRIMARY KEY,
+    object_id INTEGER NOT NULL REFERENCES geo_objects(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     comment TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
@@ -402,10 +401,10 @@ EXECUTE FUNCTION update_updated_at_column();
 
 -- 5.9. Функция для логирования действий администратора
 CREATE OR REPLACE FUNCTION log_admin_action(
-    p_user_id BIGINT,
+    p_user_id INTEGER,
     p_action VARCHAR,
     p_resource_type VARCHAR,
-    p_resource_id BIGINT,
+    p_resource_id INTEGER,
     p_changes JSONB,
     p_ip_address INET,
     p_user_agent TEXT
