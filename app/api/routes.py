@@ -265,3 +265,24 @@ async def update_map_marker(
         "created_by": marker_obj.created_by,
         "created_at": marker_obj.created_at,
     }
+
+
+@router.delete("/map-markers/{marker_id}")
+async def delete_map_marker(
+    marker_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.has_role("admin") and not current_user.has_role("moderator"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет прав для удаления меток. Только администраторы и модераторы могут удалять метки.",
+        )
+
+    marker_obj = db.query(GeoObject).filter(GeoObject.id == marker_id).first()
+    if not marker_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Метка не найдена")
+
+    db.delete(marker_obj)
+    db.commit()
+    return {"message": "Метка удалена", "id": marker_id}

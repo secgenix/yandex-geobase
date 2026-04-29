@@ -76,6 +76,7 @@ let mapMarkersData = [];
 let filterOptions = { categories: [], organizations: [] };
 let contextMenuMarker = null;
 let labelEditLastFocus = null;
+let openObjectCardId = null;
 
 function initMap() {
     ymaps.ready(function () {
@@ -148,6 +149,10 @@ function setupMapContextMenu() {
                 openLabelEditModal(contextMenuMarker);
             }
 
+            if (action === 'delete-marker') {
+                deleteContextMarker(contextMenuMarker);
+            }
+
             hideMapContextMenu();
         }
     });
@@ -201,6 +206,7 @@ function renderMapContextMenu() {
     var actions = ['<li><a href="#" data-action="add-marker" role="menuitem">Установить метку</a></li>'];
     if (isValidMarkerContext(contextMenuMarker)) {
         actions.push('<li><a href="#" data-action="edit-label" role="menuitem">Редактировать метку</a></li>');
+        actions.push('<li><a href="#" data-action="delete-marker" role="menuitem">Удалить метку</a></li>');
     }
 
     mapContextMenuEl.innerHTML = '<ul role="menu">' + actions.join('') + '</ul>';
@@ -745,7 +751,58 @@ function upsertMarkerData(items, marker) {
     if (index >= 0) items[index] = Object.assign({}, items[index], marker);
 }
 
+function deleteContextMarker(marker) {
+    if (!isValidMarkerContext(marker)) {
+        alert('Не удалось определить метку для удаления.');
+        return;
+    }
+    if (!confirm('Удалить метку "' + (marker.name || 'Без названия') + '"?')) return;
+
+    var token = localStorage.getItem('access_token');
+    if (!token) {
+        alert('Для удаления метки необходимо войти в систему.');
+        return;
+    }
+
+    fetch('/api/v1/map-markers/' + encodeURIComponent(marker.id), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+    })
+        .then(function (r) {
+            if (!r.ok) {
+                return r.json().catch(function () { return null; }).then(function (body) {
+                    throw new Error(body && body.detail ? body.detail : 'HTTP ' + r.status);
+                });
+            }
+            return r.json();
+        })
+        .then(function () {
+            removeMarkerFromUi(marker.id);
+        })
+        .catch(function (e) {
+            alert('Не удалось удалить метку: ' + e.message);
+        });
+}
+
+function removeMarkerFromUi(markerId) {
+    objectsData = objectsData.filter(function (obj) { return Number(obj.id) !== Number(markerId); });
+    mapMarkersData = mapMarkersData.filter(function (marker) { return Number(marker.id) !== Number(markerId); });
+
+    var objectCard = document.getElementById('objectCard');
+    if (objectCard && Number(openObjectCardId) === Number(markerId)) {
+        objectCard.classList.remove('is-open');
+        objectCard.setAttribute('aria-hidden', 'true');
+        openObjectCardId = null;
+    }
+
+    renderObjectsList(objectsData);
+    renderMarkers(objectsData);
+    renderFilteredMapMarkers();
+    contextMenuMarker = null;
+}
+
 function showObjectCard(obj) {
+    openObjectCardId = obj && obj.id;
     document.getElementById('cardName').textContent = getTextValue(obj.name, 'Без названия');
 
     document.getElementById('cardAddress').textContent = getDisplayAddress(obj);
@@ -852,6 +909,7 @@ document.getElementById('closeCard').addEventListener('click', function () {
     var objectCard = document.getElementById('objectCard');
     objectCard.classList.remove('is-open');
     objectCard.setAttribute('aria-hidden', 'true');
+    openObjectCardId = null;
 });
 document.getElementById('markerForm').addEventListener('submit', submitMarkerForm);
 document.getElementById('closeMarkerModal').addEventListener('click', closeMarkerModal);
