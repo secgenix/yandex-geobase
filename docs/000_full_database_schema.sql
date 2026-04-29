@@ -138,35 +138,10 @@ CREATE TABLE categories_reference (
 CREATE INDEX idx_categories_name ON categories_reference(name);
 
 -- 2.2. Справочник статусов
-CREATE TABLE statuses_reference (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
-    color VARCHAR(7),
-    created_by BIGINT REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+-- (удалено) statuses_reference
+-- (удалено) cities_reference
 
-CREATE INDEX idx_statuses_name ON statuses_reference(name);
-
--- 2.3. Справочник городов
-CREATE TABLE cities_reference (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    region VARCHAR(100),
-    country VARCHAR(100),
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    created_by BIGINT REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_cities_name ON cities_reference(name);
-CREATE INDEX idx_cities_coords ON cities_reference(latitude, longitude);
-
--- 2.4. Таблица метак (Labels/Tags)
+-- 2.2. Таблица метак (Labels/Tags)
 CREATE TABLE labels (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -181,17 +156,16 @@ CREATE TABLE labels (
 CREATE INDEX idx_labels_name ON labels(name);
 CREATE INDEX idx_labels_created_by ON labels(created_by);
 
--- 2.5. Основная таблица географических объектов
+-- 2.3. Основная таблица географических объектов
 CREATE TABLE geo_objects (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     address TEXT,
     description TEXT,
     category_id BIGINT REFERENCES categories_reference(id),
-    status_id BIGINT REFERENCES statuses_reference(id),
-    city_id BIGINT REFERENCES cities_reference(id),
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
+    image_url VARCHAR(500),  -- URL изображения метки
     created_by BIGINT NOT NULL REFERENCES users(id),
     updated_by BIGINT REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -202,8 +176,6 @@ CREATE TABLE geo_objects (
 
 -- Индексы для объектов
 CREATE INDEX idx_geo_objects_category_id ON geo_objects(category_id);
-CREATE INDEX idx_geo_objects_status_id ON geo_objects(status_id);
-CREATE INDEX idx_geo_objects_city_id ON geo_objects(city_id);
 CREATE INDEX idx_geo_objects_name ON geo_objects(name);
 CREATE INDEX idx_geo_objects_created_at ON geo_objects(created_at);
 CREATE INDEX idx_geo_objects_coords_brin ON geo_objects USING BRIN (latitude, longitude);
@@ -211,8 +183,8 @@ CREATE INDEX idx_geo_objects_created_by ON geo_objects(created_by);
 CREATE INDEX idx_geo_objects_is_verified ON geo_objects(is_verified);
 
 -- Составные индексы
-CREATE INDEX idx_geo_objects_category_status ON geo_objects(category_id, status_id);
-CREATE INDEX idx_geo_objects_city_category ON geo_objects(city_id, category_id);
+-- (удалено) idx_geo_objects_category_status
+-- (удалено) idx_geo_objects_city_category
 
 -- 2.6. Таблица связи объектов и меток (Many-to-Many)
 CREATE TABLE object_labels (
@@ -369,8 +341,6 @@ SELECT
     g.latitude,
     g.longitude,
     c.name as category,
-    s.name as status,
-    ci.name as city,
     u_creator.username as created_by_username,
     u_updater.username as updated_by_username,
     g.created_at,
@@ -379,14 +349,12 @@ SELECT
     array_agg(DISTINCT l.name) FILTER (WHERE l.name IS NOT NULL) as labels
 FROM geo_objects g
 LEFT JOIN categories_reference c ON g.category_id = c.id
-LEFT JOIN statuses_reference s ON g.status_id = s.id
-LEFT JOIN cities_reference ci ON g.city_id = ci.id
 LEFT JOIN users u_creator ON g.created_by = u_creator.id
 LEFT JOIN users u_updater ON g.updated_by = u_updater.id
 LEFT JOIN object_labels ol ON g.id = ol.object_id
 LEFT JOIN labels l ON ol.label_id = l.id
 GROUP BY g.id, g.name, g.address, g.description, g.latitude, g.longitude,
-         c.name, s.name, ci.name, u_creator.username, u_updater.username,
+         c.name, u_creator.username, u_updater.username,
          g.created_at, g.updated_at, g.is_verified;
 
 -- ============================================================================
@@ -420,19 +388,7 @@ BEFORE UPDATE ON categories_reference
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
--- 5.5. Триггер для statuses_reference таблицы
-CREATE TRIGGER update_statuses_reference_updated_at
-BEFORE UPDATE ON statuses_reference
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
-
--- 5.6. Триггер для cities_reference таблицы
-CREATE TRIGGER update_cities_reference_updated_at
-BEFORE UPDATE ON cities_reference
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
-
--- 5.7. Триггер для geo_objects таблицы
+-- 5.5. Триггер для geo_objects таблицы
 CREATE TRIGGER update_geo_objects_updated_at
 BEFORE UPDATE ON geo_objects
 FOR EACH ROW

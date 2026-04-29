@@ -107,19 +107,6 @@ class UserDetailResponse(UserResponse):
     permissions: List[str] = Field(default_factory=list)
 
 
-class UserListRequest(BaseModel):
-    """Запрос для получения списка пользователей"""
-
-    search: Optional[str] = Field(None, description="Поиск по имени или email")
-    is_active: Optional[bool] = Field(None, description="Фильтр по статусу активности")
-    is_verified: Optional[bool] = Field(
-        None, description="Фильтр по статусу верификации"
-    )
-    role: Optional[str] = Field(None, description="Фильтр по роли")
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-
 class UserUpdateRequest(BaseModel):
     """Запрос для обновления профиля пользователя"""
 
@@ -131,8 +118,67 @@ class UserUpdateRequest(BaseModel):
 class UserAdminUpdateRequest(UserUpdateRequest):
     """Запрос для обновления пользователя администратором"""
 
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
+    role_ids: Optional[List[int]] = None
+
+    @field_validator("password")
+    @classmethod
+    def validate_admin_password(cls, v):
+        if v is None:
+            return v
+        if (
+            not re.search(r"[A-Z]", v)
+            or not re.search(r"[a-z]", v)
+            or not re.search(r"[0-9]", v)
+        ):
+            raise ValueError(
+                "Пароль должен содержать заглавные буквы, строчные буквы и цифры"
+            )
+        return v
+
+
+class UserAdminCreateRequest(BaseModel):
+    """Запрос для создания пользователя администратором"""
+
+    username: str = Field(..., min_length=3, max_length=100)
+    email: EmailStr
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    is_active: bool = True
+    is_verified: bool = False
+    role_ids: List[int] = Field(default_factory=list)
+    password: Optional[str] = Field(None, min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_create_password(cls, v):
+        if v is None:
+            return v
+        if (
+            not re.search(r"[A-Z]", v)
+            or not re.search(r"[a-z]", v)
+            or not re.search(r"[0-9]", v)
+        ):
+            raise ValueError(
+                "Пароль должен содержать заглавные буквы, строчные буквы и цифры"
+            )
+        return v
+
+
+class UserAdminCreateResponse(UserDetailResponse):
+    """Ответ создания пользователя администратором"""
+
+    temporary_password: Optional[str] = None
+
+
+class UserBulkStatusRequest(BaseModel):
+    """Запрос для массового изменения статуса пользователей"""
+
+    user_ids: List[int] = Field(..., min_length=1)
+    is_active: bool
 
 
 # ============================================================================
@@ -179,6 +225,7 @@ class RoleCreateRequest(BaseModel):
 class RoleUpdateRequest(BaseModel):
     """Запрос для обновления роли"""
 
+    name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = None
     permission_ids: Optional[List[int]] = None
 
@@ -262,48 +309,25 @@ class CategoryCreateRequest(BaseModel):
     icon: Optional[str] = None
 
 
-class StatusResponse(BaseModel):
-    """Информация о статусе"""
+class CategoryUpdateRequest(BaseModel):
+    """Запрос для обновления категории"""
 
-    id: int
-    name: str
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
     color: Optional[str] = None
-
-    class Config:
-        from_attributes = True
+    icon: Optional[str] = None
 
 
-class StatusCreateRequest(BaseModel):
-    """Запрос для создания статуса"""
-
-    name: str = Field(..., min_length=1, max_length=50)
-    description: Optional[str] = None
-    color: Optional[str] = None
+class OrganizationResponse(LabelResponse):
+    """Информация об организации"""
 
 
-class CityResponse(BaseModel):
-    """Информация о городе"""
-
-    id: int
-    name: str
-    region: Optional[str] = None
-    country: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-
-    class Config:
-        from_attributes = True
+class OrganizationCreateRequest(LabelCreateRequest):
+    """Запрос для создания организации"""
 
 
-class CityCreateRequest(BaseModel):
-    """Запрос для создания города"""
-
-    name: str = Field(..., min_length=1, max_length=100)
-    region: Optional[str] = None
-    country: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
+class OrganizationUpdateRequest(LabelUpdateRequest):
+    """Запрос для обновления организации"""
 
 
 # ============================================================================
@@ -320,57 +344,14 @@ class GeoObjectResponse(BaseModel):
     description: Optional[str] = None
     latitude: float
     longitude: float
+    image_url: Optional[str] = None  # URL изображения метки (base64 или URL)
     category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
     is_verified: bool = False
     created_at: datetime
     labels: List[str] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
-
-
-class GeoObjectCreateRequest(BaseModel):
-    """Запрос для создания нового объекта"""
-
-    name: str = Field(..., min_length=1, max_length=255)
-    address: Optional[str] = None
-    description: Optional[str] = None
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
-    category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
-    label_ids: List[int] = Field(default_factory=list)
-
-
-class GeoObjectUpdateRequest(BaseModel):
-    """Запрос для обновления объекта"""
-
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    address: Optional[str] = None
-    description: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
-    label_ids: Optional[List[int]] = None
-
-
-class GeoObjectFilterRequest(BaseModel):
-    """Запрос для фильтрации объектов"""
-
-    search: Optional[str] = None
-    category_id: Optional[int] = None
-    status_id: Optional[int] = None
-    city_id: Optional[int] = None
-    label_ids: Optional[List[int]] = None
-    bbox: Optional[str] = None  # minLon,minLat,maxLon,maxLat
-    is_verified: Optional[bool] = None
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
 
 
 # ============================================================================
@@ -394,19 +375,6 @@ class AuditLogResponse(BaseModel):
         from_attributes = True
 
 
-class AuditLogFilterRequest(BaseModel):
-    """Запрос для фильтрации логов"""
-
-    user_id: Optional[int] = None
-    action: Optional[str] = None
-    resource_type: Optional[str] = None
-    status: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-
 # ============================================================================
 # ОБЩИЕ СХЕМЫ ОТВЕТОВ
 # ============================================================================
@@ -419,14 +387,6 @@ class PaginatedResponse(BaseModel):
     total: int = Field(...)
     limit: int = Field(...)
     offset: int = Field(...)
-
-
-class ErrorResponse(BaseModel):
-    """Схема ошибки"""
-
-    code: str = Field(..., description="Код ошибки")
-    message: str = Field(..., description="Сообщение об ошибке")
-    details: Optional[dict] = Field(None, description="Дополнительные детали")
 
 
 class SuccessResponse(BaseModel):

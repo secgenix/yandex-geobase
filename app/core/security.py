@@ -6,6 +6,7 @@
 """
 
 import os
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from functools import lru_cache
@@ -13,6 +14,7 @@ from functools import lru_cache
 import jwt
 from passlib.context import CryptContext
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 # ============================================================================
 # КОНФИГУРАЦИЯ
@@ -25,15 +27,19 @@ class SecuritySettings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     BCRYPT_ROUNDS: int = 12
-    
-    class Config:
-        env_file = ".env"
+
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
 
 @lru_cache()
 def get_security_settings():
     """Получить настройки безопасности"""
-    return SecuritySettings()
+    settings = SecuritySettings()
+    if settings.SECRET_KEY == "your-secret-key-change-in-production":
+        print("[security] WARNING: SECRET_KEY uses the development default. Set SECRET_KEY in .env for non-local use.")
+    if settings.ALGORITHM not in {"HS256", "HS384", "HS512"}:
+        raise ValueError("Unsupported JWT algorithm")
+    return settings
 
 
 # ============================================================================
@@ -126,36 +132,6 @@ def create_access_token(
     return encoded_jwt, expires_in
 
 
-def create_refresh_token(user_id: int) -> str:
-    """
-    Создать JWT токен обновления (долгоживущий)
-    
-    Args:
-        user_id: ID пользователя
-        
-    Returns:
-        Refresh токен
-    """
-    settings = get_security_settings()
-    
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    
-    to_encode = {
-        "sub": str(user_id),
-        "type": "refresh",
-        "exp": expire,
-        "iat": datetime.now(timezone.utc)
-    }
-    
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
-    )
-    
-    return encoded_jwt
-
-
 def decode_token(token: str) -> dict:
     """
     Декодировать и проверить JWT токен
@@ -200,14 +176,6 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
-# ============================================================================
-# ФУНКЦИИ ДЛЯ РАБОТЫ С ХЕШЕМ ТОКЕНА (для хранения в БД)
-# ============================================================================
-
-import hashlib
-import secrets
-
-
 def hash_token(token: str) -> str:
     """
     Хешировать токен для хранения в БД (безопасность)
@@ -221,37 +189,9 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def generate_random_token(length: int = 32) -> str:
-    """
-    Генерировать случайный токен
-    
-    Args:
-        length: Длина токена в байтах
-        
-    Returns:
-        Случайный токен в hex формате
-    """
-    return secrets.token_hex(length)
-
-
 # ============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================================
-
-def is_valid_email(email: str) -> bool:
-    """
-    Проверить валидность email адреса
-    
-    Args:
-        email: Email адрес
-        
-    Returns:
-        True если email валидный
-    """
-    import re
-    pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'
-    return re.match(pattern, email) is not None
-
 
 def is_strong_password(password: str) -> bool:
     """

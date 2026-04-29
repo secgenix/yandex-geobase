@@ -2,9 +2,7 @@
 API endpoints для аутентификации и авторизации пользователей
 """
 
-from datetime import datetime
-from typing import Optional
-
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -16,29 +14,28 @@ from app.models.schemas import (
     UserResponse, UserChangePasswordRequest, SuccessResponse,
     UserDetailResponse
 )
-from app.core.security import (
-    hash_password, verify_password, create_access_token,
-    create_refresh_token, verify_token, hash_token, is_strong_password
-)
+from app.core.security import hash_password, verify_password, create_access_token, verify_token, hash_token, is_strong_password
 from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
+def utc_now_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def client_ip(request: Request | None) -> str | None:
+    if request is None:
+        return None
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()
+    return request.client.host if request.client else None
+
+
 # ============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================================
-
-def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
-    """Получить пользователя из токена"""
-    payload = verify_token(token)
-    if not payload:
-        return None
-    
-    user_id = int(payload.get("sub"))
-    user = db.query(User).filter(User.id == user_id).first()
-    return user
-
 
 # ============================================================================
 # ENDPOINTS АУТЕНТИФИКАЦИИ
@@ -114,6 +111,7 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     request: UserLoginRequest,
+    http_request: Request,
     db: Session = Depends(get_db)
 ):
     """
@@ -148,7 +146,8 @@ async def login(
         )
     
     # Обновление времени последнего входа
-    user.last_login = datetime.utcnow()
+    now = utc_now_naive()
+    user.last_login = now
     db.commit()
     
     # Создание токена
@@ -161,13 +160,14 @@ async def login(
     
     # Сохранение сессии в БД
     token_hash = hash_token(access_token)
-    from datetime import timedelta, timezone
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    expires_at = now + timedelta(seconds=expires_in)
     
     session = DBSession(
         user_id=user.id,
         token_hash=token_hash,
-        expires_at=expires_at
+        expires_at=expires_at,
+        ip_address=client_ip(http_request),
+        user_agent=http_request.headers.get("user-agent"),
     )
     db.add(session)
     db.commit()
@@ -201,8 +201,15 @@ async def logout(
     Выход пользователя из системы
     """
     
-    # Удаление всех активных сессий пользователя
-    db.query(DBSession).filter(DBSession.user_id == current_user.id).delete()
+    auth_header = request.headers.get("Authorization") if request else None
+    token = auth_header.split()[1] if auth_header and len(auth_header.split()) == 2 else None
+    if token:
+        db.query(DBSession).filter(
+            DBSession.user_id == current_user.id,
+            DBSession.token_hash == hash_token(token)
+        ).delete()
+    else:
+        db.query(DBSession).filter(DBSession.user_id == current_user.id).delete()
     db.commit()
     
     return SuccessResponse(
@@ -243,7 +250,7 @@ async def change_password(
     
     # Обновление пароля
     current_user.password_hash = hash_password(request.new_password)
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = utc_now_naive()
     
     # Удаление всех активных сессий (требуется повторный вход)
     db.query(DBSession).filter(DBSession.user_id == current_user.id).delete()
@@ -291,6 +298,7 @@ async def get_current_user_info(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -305,15 +313,23 @@ async def refresh_token(
         roles=roles
     )
     
-    # Сохранение новой сессии
+    auth_header = request.headers.get("Authorization")
+    old_token = auth_header.split()[1] if auth_header and len(auth_header.split()) == 2 else None
+    if old_token:
+        db.query(DBSession).filter(
+            DBSession.user_id == current_user.id,
+            DBSession.token_hash == hash_token(old_token)
+        ).delete()
+
     token_hash = hash_token(access_token)
-    from datetime import timedelta, timezone
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    expires_at = utc_now_naive() + timedelta(seconds=expires_in)
     
     session = DBSession(
         user_id=current_user.id,
         token_hash=token_hash,
-        expires_at=expires_at
+        expires_at=expires_at,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
     )
     db.add(session)
     db.commit()

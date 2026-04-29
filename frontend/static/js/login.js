@@ -37,15 +37,30 @@ async function handleLogin(e) {
             })
         });
 
-        const data = await response.json();
+        // Не все ответы гарантированно JSON (например, HTML при 500/прокси/редиректе),
+        // поэтому сначала читаем как текст и уже потом пытаемся распарсить.
+        const rawText = await response.text();
+        let data = null;
+        try {
+            data = rawText ? JSON.parse(rawText) : null;
+        } catch (_) {
+            data = null;
+        }
 
         if (!response.ok) {
-            throw new Error(data.detail || 'Ошибка входа');
+            const serverMsg =
+                (data && (data.detail || data.message)) ||
+                (rawText && rawText.trim().slice(0, 300)) ||
+                `HTTP ${response.status}`;
+            throw new Error(serverMsg || 'Ошибка входа');
         }
 
         // Сохранить токен
+        if (!data || !data.access_token) {
+            throw new Error('Сервер вернул неожиданный ответ (нет access_token)');
+        }
         localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('token_type', data.token_type);
+        localStorage.setItem('token_type', data.token_type || 'bearer');
         
         if (rememberMe) {
             localStorage.setItem('remember_email', email);

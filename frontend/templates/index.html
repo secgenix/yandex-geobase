@@ -12,17 +12,21 @@
             justify-content: space-between !important;
             align-items: center !important;
         }
+
         .header-title {
             display: flex;
             align-items: center;
             gap: 20px;
         }
+
         .header-nav {
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        .header-nav a, .header-nav button {
+
+        .header-nav a,
+        .header-nav button {
             color: white;
             text-decoration: none;
             padding: 8px 12px;
@@ -32,12 +36,15 @@
             font-size: 14px;
             transition: all 0.3s;
         }
+
         .header-nav a:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+
         .header-nav button {
             background: #ff6b00;
         }
+
         .header-nav button:hover {
             background: #e55a00;
         }
@@ -69,14 +76,8 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label for="statusFilter">Статус</label>
-                <select id="statusFilter">
-                    <option value="">Все</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="cityFilter">Город</label>
-                <select id="cityFilter">
+                <label for="organizationFilter">Организация</label>
+                <select id="organizationFilter">
                     <option value="">Все</option>
                 </select>
             </div>
@@ -90,21 +91,93 @@
 
         <main class="main">
             <div id="map" class="map" style="height: 100%;"></div>
+            <div id="mapContextMenu" class="context-menu" style="display: none;">
+                <ul>
+                    <li><a href="#" data-action="add-marker">Установить метку</a></li>
+                </ul>
+            </div>
             <div id="loading" class="loading" style="display: none;">Загрузка...</div>
             <div id="noResults" class="no-results" style="display: none;">Ничего не найдено</div>
+            <aside class="object-card" id="objectCard" aria-hidden="true">
+                <button id="closeCard" type="button" aria-label="Закрыть карточку">&times;</button>
+                <div class="object-card__media" id="cardImageContainer" aria-hidden="true">
+                    <img id="cardImage" src="" alt="Изображение объекта">
+                    <div class="object-card__placeholder" id="cardImagePlaceholder">Изображение не добавлено</div>
+                </div>
+                <div class="object-card__content">
+                    <h3 id="cardName"></h3>
+                    <dl class="object-card__details">
+                        <div>
+                            <dt>Адрес</dt>
+                            <dd id="cardAddress"></dd>
+                        </div>
+                        <div>
+                            <dt>Категория</dt>
+                            <dd id="cardCategory"></dd>
+                        </div>
+                        <div>
+                            <dt>Организация</dt>
+                            <dd id="cardOrganization"></dd>
+                        </div>
+                        <div>
+                            <dt>Описание</dt>
+                            <dd id="cardDescription"></dd>
+                        </div>
+                    </dl>
+                </div>
+            </aside>
         </main>
 
-
-
-        <aside class="object-card" id="objectCard" style="display: none;">
-            <button id="closeCard">&times;</button>
-            <h3 id="cardName"></h3>
-            <p><strong>Адрес:</strong> <span id="cardAddress"></span></p>
-            <p><strong>Категория:</strong> <span id="cardCategory"></span></p>
-            <p><strong>Статус:</strong> <span id="cardStatus"></span></p>
-            <p><strong>Координаты:</strong> <span id="cardCoords"></span></p>
-            <p><strong>Описание:</strong> <span id="cardDescription"></span></p>
-        </aside>
+        <div id="markerModal" class="marker-modal" style="display: none;">
+            <div class="marker-modal__dialog">
+                <div class="marker-modal__header">
+                    <h3>Добавить метку</h3>
+                    <button type="button" id="closeMarkerModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="markerForm" class="marker-form">
+                    <div class="filter-group">
+                        <label for="markerName">Название</label>
+                        <input type="text" id="markerName" name="name" required maxlength="255"
+                            placeholder="Название метки">
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerOrganization">Организация</label>
+                        <select id="markerOrganization" name="organization_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerCategory">Категория</label>
+                        <select id="markerCategory" name="category_id">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerDescription">Описание</label>
+                        <textarea id="markerDescription" name="description" placeholder="Описание метки"></textarea>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerImage">Изображение</label>
+                        <input type="file" id="markerImage" name="image" accept="image/*"
+                            placeholder="Выберите изображение">
+                        <div id="imagePreview" class="image-preview" style="display: none;">
+                            <img id="previewImg" src="" alt="Превью изображения">
+                            <button type="button" id="removeImage">Удалить</button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="markerAddress">Адрес</label>
+                        <input type="text" id="markerAddress" name="address"
+                            placeholder="Адрес (заполнится автоматически при клике на дом)">
+                        <small style="color: #666;">При клике на дом адрес подставится автоматически</small>
+                    </div>
+                    <div class="marker-modal__actions">
+                        <button type="button" id="cancelMarkerModal">Отмена</button>
+                        <button type="submit">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ api_key }}&lang=ru_RU"></script>

@@ -2,10 +2,9 @@
 FastAPI dependencies для проверки авторизации и разрешений
 """
 
-from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.pool import get_db
 from app.db.models import User, Session as DBSession
@@ -52,7 +51,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user_id = int(payload.get("sub"))
+    try:
+        user_id = int(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Невалидный токен авторизации",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Получить пользователя из БД
     user = db.query(User).filter(User.id == user_id).first()
@@ -72,10 +78,11 @@ async def get_current_user(
     
     # Проверить наличие активной сессии в БД
     token_hash = hash_token(token)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     session = db.query(DBSession).filter(
         DBSession.user_id == user_id,
         DBSession.token_hash == token_hash,
-        DBSession.expires_at > datetime.utcnow()
+        DBSession.expires_at > now
     ).first()
     
     if not session:
@@ -86,76 +93,10 @@ async def get_current_user(
         )
     
     # Обновить время последней активности
-    session.last_activity = datetime.utcnow()
+    session.last_activity = now
     db.commit()
     
     return user
-
-
-async def get_optional_user(
-    request: Request,
-    db: Session = Depends(get_db)
-) -> Optional[User]:
-    """
-    Получить текущего пользователя, если он авторизован (опционально)
-    Возвращает None если пользователь не авторизован
-    """
-    try:
-        return await get_current_user(request, db)
-    except HTTPException:
-        return None
-
-
-async def require_permission(
-    permission_name: str,
-):
-    """
-    Factory для создания dependency, проверяющей разрешение
-    
-    Пример использования:
-        @router.post("/admin/users")
-        async def admin_endpoint(
-            current_user: User = Depends(get_current_user),
-            _: None = Depends(require_permission("users.create"))
-        ):
-            ...
-    """
-    async def check_permission(
-        current_user: User = Depends(get_current_user)
-    ) -> None:
-        if not current_user.has_permission(permission_name):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Отсутствует разрешение: {permission_name}"
-            )
-        return None
-    
-    return check_permission
-
-
-async def require_role(role_name: str):
-    """
-    Factory для создания dependency, проверяющей роль
-    
-    Пример использования:
-        @router.post("/admin/users")
-        async def admin_endpoint(
-            current_user: User = Depends(get_current_user),
-            _: None = Depends(require_role("admin"))
-        ):
-            ...
-    """
-    async def check_role(
-        current_user: User = Depends(get_current_user)
-    ) -> None:
-        if not current_user.has_role(role_name):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Требуется роль: {role_name}"
-            )
-        return None
-    
-    return check_role
 
 
 # Простые dependencies для часто используемых ролей
@@ -171,13 +112,3 @@ async def require_admin(
     return current_user
 
 
-async def require_moderator(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Требуется роль администратора или модератора"""
-    if not (current_user.has_role("admin") or current_user.has_role("moderator")):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Требуется роль администратора или модератора"
-        )
-    return current_user

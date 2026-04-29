@@ -41,7 +41,10 @@
                         <span>🔑</span> Разрешения
                     </a>
                     <a href="#manage-labels" class="menu-item" data-section="manage-labels">
-                        <span>🏷️</span> Метки
+                        <span>🏷️</span> Организации
+                    </a>
+                    <a href="#manage-categories" class="menu-item" data-section="manage-categories">
+                        <span>📂</span> Категории
                     </a>
                     <a href="#audit-logs" class="menu-item" data-section="audit-logs">
                         <span>📋</span> Логи
@@ -83,7 +86,14 @@
                             <div class="stat-icon">🏷️</div>
                             <div class="stat-content">
                                 <div class="stat-value" id="labelCount">0</div>
-                                <div class="stat-label">Меток</div>
+                                <div class="stat-label">Организаций</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📂</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="categoryCount">0</div>
+                                <div class="stat-label">Категорий</div>
                             </div>
                         </div>
                     </div>
@@ -116,6 +126,7 @@
                                 <table class="data-table">
                                     <thead>
                                         <tr>
+                                            <th><input type="checkbox" id="selectAllUsers"></th>
                                             <th>ID</th>
                                             <th>Имя пользователя</th>
                                             <th>Email</th>
@@ -127,10 +138,16 @@
                                     </thead>
                                     <tbody id="usersTable">
                                         <tr class="loading-row">
-                                            <td colspan="7" class="text-center">Загрузка...</td>
+                                            <td colspan="8" class="text-center">Загрузка...</td>
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <div class="bulk-actions">
+                                <button id="activateUsersBtn" class="btn btn-secondary btn-sm">Активировать выбранных</button>
+                                <button id="deactivateUsersBtn" class="btn btn-secondary btn-sm">Деактивировать выбранных</button>
+                                <button id="exportUsersBtn" class="btn btn-secondary btn-sm">Экспорт CSV</button>
                             </div>
 
                             <div id="usersPagination" class="pagination"></div>
@@ -141,7 +158,7 @@
                 <!-- Manage Roles -->
                 <section id="manage-roles" class="content-section">
                     <div class="section-header">
-                        <h2>🎭 Управление ролями</h2>
+                        <h2>🎭 Роли и права</h2>
                         <button id="addRoleBtn" class="btn btn-primary">+ Добавить роль</button>
                     </div>
 
@@ -215,11 +232,45 @@
                     </div>
                 </section>
 
-                <!-- Manage Labels -->
+                <!-- Manage Organizations -->
                 <section id="manage-labels" class="content-section">
                     <div class="section-header">
-                        <h2>🏷️ Управление метками</h2>
-                        <button id="addLabelBtn" class="btn btn-primary">+ Добавить метку</button>
+                        <h2>🏷️ Управление организациями</h2>
+                        <button id="addOrganizationBtn" class="btn btn-primary">+ Добавить организацию</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                         <tr>
+                                             <th>ID</th>
+                                             <th>Название</th>
+                                             <th>Описание</th>
+                                             <th>Цвет</th>
+                                             <th>Дата создания</th>
+                                             <th>Действия</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody id="organizationsTable">
+                                         <tr class="loading-row">
+                                             <td colspan="6" class="text-center">Загрузка...</td>
+                                         </tr>
+                                     </tbody>
+                                 </table>
+                            </div>
+
+                             <div id="organizationsPagination" class="pagination"></div>
+                         </div>
+                     </div>
+                 </section>
+
+                <!-- Manage Categories -->
+                <section id="manage-categories" class="content-section">
+                    <div class="section-header">
+                        <h2>📂 Управление категориями</h2>
+                        <button id="addCategoryBtn" class="btn btn-primary">+ Добавить категорию</button>
                     </div>
 
                     <div class="card">
@@ -232,20 +283,19 @@
                                             <th>Название</th>
                                             <th>Описание</th>
                                             <th>Цвет</th>
-                                            <th>Автор</th>
-                                            <th>Дата создания</th>
+                                            <th>Иконка</th>
                                             <th>Действия</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="labelsTable">
+                                    <tbody id="categoriesTable">
                                         <tr class="loading-row">
-                                            <td colspan="7" class="text-center">Загрузка...</td>
+                                            <td colspan="6" class="text-center">Загрузка...</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
 
-                            <div id="labelsPagination" class="pagination"></div>
+                            <div id="categoriesPagination" class="pagination"></div>
                         </div>
                     </div>
                 </section>
@@ -321,6 +371,6 @@
         <span class="spinner"></span> Загрузка...
     </div>
 
-    <script src="../static/js/admin.js"></script>
+    <script src="../static/js/admin.js?v=2"></script>
 </body>
 </html>
