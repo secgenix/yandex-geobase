@@ -5,8 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.db.pool import get_db
-from app.db.models import User, GeoObject, CategoryReference, Label
-from app.core.dependencies import get_current_user
+from app.db.models import GeoObject, CategoryReference, Label
 from app.api.auth_routes import router as auth_router
 from app.api.admin_routes import router as admin_router
 from app.api.routes import router as api_router
@@ -175,19 +174,6 @@ async def admin_redirect(request: Request):
 async def health():
     """Проверка здоровья сервиса"""
     return {"status": "ok", "version": "2.0.0", "message": "Сервис работает корректно"}
-
-
-# Тестовый endpoint для проверки авторизации
-@app.get("/api/v1/test-auth")
-async def test_auth(current_user=None):
-    from app.core.dependencies import get_current_user
-    from sqlalchemy.orm import Session
-    from fastapi import Depends
-    from app.db.pool import get_db
-
-    # Этот endpoint требует авторизации
-    # Используйте: curl -H "Authorization: Bearer <token>" http://localhost:8000/api/v1/test-auth
-    return {"message": "Вы авторизованы", "user": current_user}
 
 
 # Старые endpoints (совместимость)

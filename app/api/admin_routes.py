@@ -15,16 +15,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
 from app.db.pool import get_db
-from app.db.models import User, Role, Permission, Label, AuditLog, CategoryReference, GeoObject
+from app.db.models import User, Role, Permission, Label, AuditLog, CategoryReference
 from app.models.schemas import (
-    UserResponse, UserDetailResponse, UserListRequest,
+    UserDetailResponse,
     UserAdminCreateRequest, UserAdminCreateResponse, UserBulkStatusRequest,
     RoleResponse, RoleCreateRequest, RoleUpdateRequest,
     PermissionResponse, UserRoleAssignRequest, UserRoleRevokeRequest,
     LabelResponse, LabelCreateRequest, LabelUpdateRequest,
     CategoryResponse, CategoryCreateRequest, CategoryUpdateRequest,
     OrganizationResponse, OrganizationCreateRequest, OrganizationUpdateRequest,
-    AuditLogResponse, AuditLogFilterRequest,
+    AuditLogResponse,
     PaginatedResponse, SuccessResponse, UserAdminUpdateRequest
 )
 from app.core.dependencies import get_current_user, require_admin

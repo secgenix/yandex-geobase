@@ -107,19 +107,6 @@ class UserDetailResponse(UserResponse):
     permissions: List[str] = Field(default_factory=list)
 
 
-class UserListRequest(BaseModel):
-    """Запрос для получения списка пользователей"""
-
-    search: Optional[str] = Field(None, description="Поиск по имени или email")
-    is_active: Optional[bool] = Field(None, description="Фильтр по статусу активности")
-    is_verified: Optional[bool] = Field(
-        None, description="Фильтр по статусу верификации"
-    )
-    role: Optional[str] = Field(None, description="Фильтр по роли")
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-
 class UserUpdateRequest(BaseModel):
     """Запрос для обновления профиля пользователя"""
 
@@ -343,30 +330,6 @@ class OrganizationUpdateRequest(LabelUpdateRequest):
     """Запрос для обновления организации"""
 
 
-class StatusResponse(BaseModel):
-    """Информация о статусе (deprecated)"""
-
-    pass
-
-
-class StatusCreateRequest(BaseModel):
-    """Запрос для создания статуса (deprecated)"""
-
-    pass
-
-
-class CityResponse(BaseModel):
-    """Информация о городе (deprecated)"""
-
-    pass
-
-
-class CityCreateRequest(BaseModel):
-    """Запрос для создания города (deprecated)"""
-
-    pass
-
-
 # ============================================================================
 # СХЕМЫ ГЕОГРАФИЧЕСКИХ ОБЪЕКТОВ
 # ============================================================================
@@ -391,43 +354,6 @@ class GeoObjectResponse(BaseModel):
         from_attributes = True
 
 
-class GeoObjectCreateRequest(BaseModel):
-    """Запрос для создания нового объекта"""
-
-    name: str = Field(..., min_length=1, max_length=255)
-    address: Optional[str] = None  # Текстовый адрес метки
-    description: Optional[str] = None
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
-    image_url: Optional[str] = None  # URL изображения метки (base64 или URL)
-    category_id: Optional[int] = None
-    label_ids: List[int] = Field(default_factory=list)
-
-
-class GeoObjectUpdateRequest(BaseModel):
-    """Запрос для обновления объекта"""
-
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    address: Optional[str] = None
-    description: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    category_id: Optional[int] = None
-    label_ids: Optional[List[int]] = None
-
-
-class GeoObjectFilterRequest(BaseModel):
-    """Запрос для фильтрации объектов"""
-
-    search: Optional[str] = None
-    category_id: Optional[int] = None
-    label_ids: Optional[List[int]] = None
-    bbox: Optional[str] = None  # minLon,minLat,maxLon,maxLat
-    is_verified: Optional[bool] = None
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-
 # ============================================================================
 # СХЕМЫ ЛОГИРОВАНИЯ
 # ============================================================================
@@ -449,19 +375,6 @@ class AuditLogResponse(BaseModel):
         from_attributes = True
 
 
-class AuditLogFilterRequest(BaseModel):
-    """Запрос для фильтрации логов"""
-
-    user_id: Optional[int] = None
-    action: Optional[str] = None
-    resource_type: Optional[str] = None
-    status: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    limit: int = Field(100, ge=1, le=1000)
-    offset: int = Field(0, ge=0)
-
-
 # ============================================================================
 # ОБЩИЕ СХЕМЫ ОТВЕТОВ
 # ============================================================================
@@ -474,14 +387,6 @@ class PaginatedResponse(BaseModel):
     total: int = Field(...)
     limit: int = Field(...)
     offset: int = Field(...)
-
-
-class ErrorResponse(BaseModel):
-    """Схема ошибки"""
-
-    code: str = Field(..., description="Код ошибки")
-    message: str = Field(..., description="Сообщение об ошибке")
-    details: Optional[dict] = Field(None, description="Дополнительные детали")
 
 
 class SuccessResponse(BaseModel):

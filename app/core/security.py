@@ -6,6 +6,7 @@
 """
 
 import os
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from functools import lru_cache
@@ -131,36 +132,6 @@ def create_access_token(
     return encoded_jwt, expires_in
 
 
-def create_refresh_token(user_id: int) -> str:
-    """
-    Создать JWT токен обновления (долгоживущий)
-    
-    Args:
-        user_id: ID пользователя
-        
-    Returns:
-        Refresh токен
-    """
-    settings = get_security_settings()
-    
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    
-    to_encode = {
-        "sub": str(user_id),
-        "type": "refresh",
-        "exp": expire,
-        "iat": datetime.now(timezone.utc)
-    }
-    
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
-    )
-    
-    return encoded_jwt
-
-
 def decode_token(token: str) -> dict:
     """
     Декодировать и проверить JWT токен
@@ -205,14 +176,6 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
-# ============================================================================
-# ФУНКЦИИ ДЛЯ РАБОТЫ С ХЕШЕМ ТОКЕНА (для хранения в БД)
-# ============================================================================
-
-import hashlib
-import secrets
-
-
 def hash_token(token: str) -> str:
     """
     Хешировать токен для хранения в БД (безопасность)
@@ -226,37 +189,9 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def generate_random_token(length: int = 32) -> str:
-    """
-    Генерировать случайный токен
-    
-    Args:
-        length: Длина токена в байтах
-        
-    Returns:
-        Случайный токен в hex формате
-    """
-    return secrets.token_hex(length)
-
-
 # ============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================================
-
-def is_valid_email(email: str) -> bool:
-    """
-    Проверить валидность email адреса
-    
-    Args:
-        email: Email адрес
-        
-    Returns:
-        True если email валидный
-    """
-    import re
-    pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'
-    return re.match(pattern, email) is not None
-
 
 def is_strong_password(password: str) -> bool:
     """

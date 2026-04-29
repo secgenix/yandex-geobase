@@ -2,14 +2,13 @@
 API endpoints для работы с географическими объектами
 """
 
-from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db.pool import get_db
 from app.db.models import User, GeoObject, CategoryReference, Label
-from app.models.schemas import GeoObjectResponse, PaginatedResponse, SuccessResponse
-from app.core.dependencies import get_current_user, get_optional_user
+from app.models.schemas import GeoObjectResponse, PaginatedResponse
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["geo"])
 

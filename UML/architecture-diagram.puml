@@ -15,10 +15,9 @@ package "Frontend\n(HTML/CSS/JavaScript)" as frontend {
 package "Backend\n(FastAPI/Python)" as backend {
   component "main.py" as main_app
   component "routes.py\n(API endpoints)" as api_routes
-  component "geo_service.py\n(Бизнес-логика)" as geo_service
+  component "models.py\n(SQLAlchemy ORM)" as orm_models
   component "config.py\n(Конфигурация)" as config
-  component "pool.py\n(Connection Pool)" as pool
-  component "queries.py\n(SQL запросы)" as queries
+  component "pool.py\n(SQLAlchemy engine/session)" as pool
   component "schemas.py\n(Pydantic модели)" as schemas
 }
 
@@ -37,13 +36,10 @@ html_file --> js_script : использует
 js_script --> yandex_lib : инициализирует
 js_script --> api_routes : GET запросы\n(/api/v1/objects, /api/v1/filters)
 
-api_routes --> geo_service : вызывает
-geo_service --> queries : формирует SQL
-queries --> pool : использует соединение
+api_routes --> pool : получает DB session
+api_routes --> orm_models : строит ORM query
 pool --> geo_table : SELECT/INSERT/UPDATE
-pool --> cat_ref : SELECT DISTINCT
-pool --> status_ref : SELECT DISTINCT
-pool --> city_ref : SELECT DISTINCT
+pool --> cat_ref : SELECT/INSERT/UPDATE
 
 main_app --> api_routes : регистрирует
 main_app --> config : загружает
@@ -60,14 +56,9 @@ note right of js_script
   fetch(), axios или XMLHttpRequest
 end note
 
-note right of geo_service
-  Обработка фильтров
-  Построение WHERE условий
-end note
-
-note right of queries
-  Параметризованные запросы
-  Предотвращение SQL injection
+note right of orm_models
+  SQLAlchemy строит
+  параметризованные запросы
 end note
 
 note right of yandex_lib

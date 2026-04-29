@@ -3,8 +3,6 @@ API endpoints для аутентификации и авторизации по
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -38,17 +36,6 @@ def client_ip(request: Request | None) -> str | None:
 # ============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================================
-
-def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
-    """Получить пользователя из токена"""
-    payload = verify_token(token)
-    if not payload:
-        return None
-    
-    user_id = int(payload.get("sub"))
-    user = db.query(User).filter(User.id == user_id).first()
-    return user
-
 
 # ============================================================================
 # ENDPOINTS АУТЕНТИФИКАЦИИ

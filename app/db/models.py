@@ -4,7 +4,6 @@ SQLAlchemy ORM модели для Yandex GeoBase
 """
 
 from datetime import datetime
-from typing import List, Optional
 from sqlalchemy import (
     Column,
     Integer,

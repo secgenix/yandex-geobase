@@ -2,7 +2,6 @@
 FastAPI dependencies для проверки авторизации и разрешений
 """
 
-from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -100,72 +99,6 @@ async def get_current_user(
     return user
 
 
-async def get_optional_user(
-    request: Request,
-    db: Session = Depends(get_db)
-) -> Optional[User]:
-    """
-    Получить текущего пользователя, если он авторизован (опционально)
-    Возвращает None если пользователь не авторизован
-    """
-    try:
-        return await get_current_user(request, db)
-    except HTTPException:
-        return None
-
-
-async def require_permission(
-    permission_name: str,
-):
-    """
-    Factory для создания dependency, проверяющей разрешение
-    
-    Пример использования:
-        @router.post("/admin/users")
-        async def admin_endpoint(
-            current_user: User = Depends(get_current_user),
-            _: None = Depends(require_permission("users.create"))
-        ):
-            ...
-    """
-    async def check_permission(
-        current_user: User = Depends(get_current_user)
-    ) -> None:
-        if not current_user.has_permission(permission_name):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Отсутствует разрешение: {permission_name}"
-            )
-        return None
-    
-    return check_permission
-
-
-async def require_role(role_name: str):
-    """
-    Factory для создания dependency, проверяющей роль
-    
-    Пример использования:
-        @router.post("/admin/users")
-        async def admin_endpoint(
-            current_user: User = Depends(get_current_user),
-            _: None = Depends(require_role("admin"))
-        ):
-            ...
-    """
-    async def check_role(
-        current_user: User = Depends(get_current_user)
-    ) -> None:
-        if not current_user.has_role(role_name):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Требуется роль: {role_name}"
-            )
-        return None
-    
-    return check_role
-
-
 # Простые dependencies для часто используемых ролей
 async def require_admin(
     current_user: User = Depends(get_current_user)
@@ -179,13 +112,3 @@ async def require_admin(
     return current_user
 
 
-async def require_moderator(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Требуется роль администратора или модератора"""
-    if not (current_user.has_role("admin") or current_user.has_role("moderator")):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Требуется роль администратора или модератора"
-        )
-    return current_user
