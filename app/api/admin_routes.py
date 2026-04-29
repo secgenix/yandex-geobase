@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
 from app.db.pool import get_db
-from app.db.models import User, Role, Permission, Label, AuditLog, CategoryReference
+from app.db.models import User, Role, Permission, Label, AuditLog, CategoryReference, GeoObject
 from app.models.schemas import (
     UserDetailResponse,
     UserAdminCreateRequest, UserAdminCreateResponse, UserBulkStatusRequest,
@@ -832,6 +832,24 @@ async def update_category(
     return build_category_response(category)
 
 
+@router.delete("/categories/{category_id}", response_model=SuccessResponse)
+async def delete_category(
+    category_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    category = db.query(CategoryReference).filter(CategoryReference.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена")
+
+    category_name = category.name
+    db.query(GeoObject).filter(GeoObject.category_id == category_id).update({GeoObject.category_id: None})
+    db.delete(category)
+    db.commit()
+    AuditLog.log(db=db, user_id=admin.id, action='delete', resource_type='category', resource_id=category_id, status='success')
+    return SuccessResponse(message=f"Категория {category_name} удалена")
+
+
 @router.get("/organizations", response_model=PaginatedResponse)
 async def list_organizations(
     search: str = Query(None, description="Поиск по названию"),
@@ -906,6 +924,24 @@ async def update_organization(
     db.refresh(organization)
     AuditLog.log(db=db, user_id=admin.id, action='update', resource_type='organization', resource_id=organization.id, status='success')
     return build_organization_response(organization)
+
+
+@router.delete("/organizations/{organization_id}", response_model=SuccessResponse)
+async def delete_organization(
+    organization_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    organization = db.query(Label).filter(Label.id == organization_id).first()
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Организация не найдена")
+
+    organization_name = organization.name
+    organization.geo_objects.clear()
+    db.delete(organization)
+    db.commit()
+    AuditLog.log(db=db, user_id=admin.id, action='delete', resource_type='organization', resource_id=organization_id, status='success')
+    return SuccessResponse(message=f"Организация {organization_name} удалена")
 
 @router.get("/labels", response_model=PaginatedResponse)
 async def list_labels(

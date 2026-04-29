@@ -346,6 +346,7 @@ async function loadOrganizations(offset = 0, limit = 50) {
                     <td>
                         <div class="action-buttons">
                             <button class="btn-icon btn-icon-edit" onclick="editOrganization(${organization.id})">✏️</button>
+                            <button class="btn-icon btn-icon-delete" onclick="deleteOrganization(${organization.id}, '${escapeAttribute(organization.name)}')">🗑️</button>
                         </div>
                     </td>
                 `;
@@ -396,6 +397,7 @@ async function loadCategories(offset = 0, limit = 50) {
                     <td>
                         <div class="action-buttons">
                             <button class="btn-icon btn-icon-edit" onclick="editCategory(${category.id})">✏️</button>
+                            <button class="btn-icon btn-icon-delete" onclick="deleteCategory(${category.id}, '${escapeAttribute(category.name)}')">🗑️</button>
                         </div>
                     </td>
                 `;
@@ -998,11 +1000,47 @@ async function editOrganization(organizationId) {
     }
 }
 
+async function deleteOrganization(organizationId, organizationName = '') {
+    const name = organizationName ? ` "${organizationName}"` : '';
+    if (!confirm(`Удалить организацию${name}?`)) return;
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/admin/organizations/${organizationId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error(await extractError(response));
+        await loadOrganizations();
+        await refreshDashboardCounts();
+    } catch (error) {
+        alert(error.message || 'Ошибка удаления организации');
+    }
+}
+
 async function editCategory(categoryId) {
     try {
         await showCategoryForm(categoryId);
     } catch (error) {
         alert(error.message || 'Ошибка открытия формы категории');
+    }
+}
+
+async function deleteCategory(categoryId, categoryName = '') {
+    const name = categoryName ? ` "${categoryName}"` : '';
+    if (!confirm(`Удалить категорию${name}?`)) return;
+
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/admin/categories/${categoryId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error(await extractError(response));
+        await loadCategories();
+        await refreshDashboardCounts();
+    } catch (error) {
+        alert(error.message || 'Ошибка удаления категории');
     }
 }
 
