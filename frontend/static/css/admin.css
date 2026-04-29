@@ -97,6 +97,15 @@
     font-weight: 600;
 }
 
+.alert-error {
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background: #fdecea;
+    color: #b71c1c;
+    font-weight: 600;
+}
+
 .btn-icon {
     padding: 6px;
     width: 32px;

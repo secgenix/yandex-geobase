@@ -515,6 +515,7 @@ async function showUserForm(userId = null) {
     modalBody.innerHTML = `
         <form id="userForm">
             <div id="temporaryPasswordBox" class="temporary-password-box" style="display:none;"></div>
+            <div id="userFormError" class="alert alert-error" style="display:none;"></div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="userUsername">Username</label>
@@ -560,7 +561,7 @@ async function showUserForm(userId = null) {
                 </div>
             </div>
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">${userId ? 'Сохранить' : 'Создать'}</button>
+                <button type="submit" id="userSubmitBtn" class="btn btn-primary">${userId ? 'Сохранить' : 'Создать'}</button>
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Отмена</button>
             </div>
         </form>
@@ -568,7 +569,25 @@ async function showUserForm(userId = null) {
 
     document.getElementById('userForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        await saveUser(userId);
+        const submitBtn = document.getElementById('userSubmitBtn');
+        const errorBox = document.getElementById('userFormError');
+        if (errorBox) {
+            errorBox.textContent = '';
+            errorBox.style.display = 'none';
+        }
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            await saveUser(userId);
+        } catch (error) {
+            alert(error.message || 'Не удалось сохранить пользователя');
+            if (errorBox) {
+                errorBox.textContent = error.message || 'Не удалось сохранить пользователя';
+                errorBox.style.display = 'block';
+            }
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
     });
     modal.style.display = 'flex';
 }
@@ -882,6 +901,9 @@ async function refreshDashboardCounts() {
 
 async function extractError(response) {
     const body = await response.json().catch(() => null);
+    if (Array.isArray(body?.detail)) {
+        return body.detail.map(item => item?.msg || String(item)).join('\n');
+    }
     return body?.detail || `HTTP ${response.status}`;
 }
 
